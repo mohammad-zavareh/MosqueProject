@@ -17,7 +17,7 @@
 
     <!-- داشبورد -->
     <div class="sb-section">
-      <a class="sb-link active" href="#">
+      <a class="sb-link active" href="{% url 'dashboard' %}">
         <span class="sb-icon">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         </span>
@@ -40,9 +40,8 @@
         </div>
         <div class="sb-sub open">
           <div class="sb-sub-inner">
-            <a class="sb-sub-link active" href="#">ثبت درآمد</a>
-            <a class="sb-sub-link" href="#">ثبت هزینه</a>
-            <a class="sb-sub-link" href="#">تراکنش‌ها</a>
+            <a class="sb-sub-link active" href="{% url 'finance:transaction_create' %}">ثبت تراکنش</a>
+            <a class="sb-sub-link" href="{% url 'finance:transaction_list' %}">تراکنش‌ها</a>
           </div>
         </div>
       </div>

@@ -1,0 +1,46 @@
+{# include با: widget_id="inc"|"exp" #}
+<div class="cat-breadcrumb" id="{{ widget_id }}-breadcrumb">
+  <span class="cat-trail" id="{{ widget_id }}-trail"></span>
+  <button type="button" class="cat-reset-btn" id="{{ widget_id }}-reset">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.5" stroke-linecap="round">
+      <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/>
+    </svg>
+    بازگشت به ریشه
+  </button>
+</div>
+
+<div class="cat-skeleton" id="{{ widget_id }}-skel"></div>
+
+<select class="form-ctrl" id="{{ widget_id }}-sel" style="display:none">
+  <option value="">— انتخاب دسته —</option>
+</select>
+
+<div class="cat-drill-row" id="{{ widget_id }}-drill">
+  <span>این دسته زیردسته دارد.</span>
+  <div class="cat-drill-actions">
+    <button type="button" class="btn btn-outline btn-sm" id="{{ widget_id }}-drill-in">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+      ورود به زیردسته
+    </button>
+    <button type="button" class="btn btn-ghost btn-sm" id="{{ widget_id }}-conf-par">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      تأیید همین دسته
+    </button>
+  </div>
+</div>
+
+<div class="cat-confirmed" id="{{ widget_id }}-confirmed">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+  <span id="{{ widget_id }}-conf-name"></span>
+  <button type="button" class="cat-change-btn" id="{{ widget_id }}-change">تغییر</button>
+</div>

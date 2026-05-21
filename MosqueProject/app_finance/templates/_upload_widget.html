@@ -1,0 +1,39 @@
+{# include با: upload_id="inc"|"exp"  form=inc_base|exp_base #}
+<div class="upload-area" id="{{ upload_id }}-upload-area"
+     onclick="document.getElementById('{{ upload_id }}-file-input').click()">
+
+  {# فیلد واقعی جنگو — id رو اورراید می‌کنیم #}
+  <input type="file"
+         name="{{ form.image_receipt.html_name }}"
+         id="{{ upload_id }}-file-input"
+         accept="image/*,application/pdf">
+
+  <div class="upload-icon">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  </div>
+  <div class="upload-txt" id="{{ upload_id }}-upload-txt">
+    فایل را بکشید یا <span>انتخاب کنید</span>
+  </div>
+  <div class="upload-hint">JPG, PNG, PDF — حداکثر ۵ مگابایت</div>
+</div>
+
+{% if form.instance.image_receipt %}
+<div class="file-item" style="margin-top:8px">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p2)"
+       stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+  </svg>
+  <span class="fi-name">فایل فعلی</span>
+  <a href="{{ form.instance.image_receipt.url }}" target="_blank"
+     class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px"
+     onclick="event.stopPropagation()">مشاهده</a>
+</div>
+{% endif %}
+
+<div class="file-list" id="{{ upload_id }}-file-preview"></div>

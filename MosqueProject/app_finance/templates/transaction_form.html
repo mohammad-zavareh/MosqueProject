@@ -1,0 +1,655 @@
+{% extends "base/main.html" %}
+{% load static %}
+
+{% block title %}
+  {% if instance %}ویرایش تراکنش #{{ instance.pk }}{% else %}ثبت تراکنش مالی{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── field error ── */
+.field-err{
+  display:flex;align-items:center;gap:5px;
+  font-size:11.5px;color:var(--red);margin-top:5px;
+}
+.field-err::before{
+  content:'';width:4px;height:4px;border-radius:50%;
+  background:var(--red);flex-shrink:0;
+}
+.has-err .form-ctrl{border-color:var(--red)!important}
+.has-err .form-ctrl:focus{box-shadow:0 0 0 3px rgba(220,38,38,.1)!important}
+
+/* ── upload ── */
+.upload-area input[type="file"]{display:none}
+
+/* ── category widget ── */
+.cat-breadcrumb{
+  display:none;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:7px 11px;margin-bottom:6px;
+  background:var(--green-bg);border:1px solid rgba(22,163,74,.2);
+  border-radius:var(--r-sm);font-size:12px;
+}
+.cat-breadcrumb.show{display:flex}
+.cat-trail{color:var(--green-txt);font-weight:600;flex:1;line-height:1.5}
+.cat-reset-btn{
+  display:flex;align-items:center;gap:4px;
+  background:none;border:1px solid rgba(22,163,74,.25);
+  color:var(--p2);cursor:pointer;font-family:var(--font);
+  font-size:11px;font-weight:600;padding:3px 8px;
+  border-radius:5px;transition:background var(--t);
+}
+.cat-reset-btn:hover{background:rgba(26,107,74,.1)}
+
+.cat-skeleton{
+  height:40px;border-radius:var(--r-sm);display:none;
+  background:linear-gradient(90deg,#f0f2f5 25%,#e2e8f0 50%,#f0f2f5 75%);
+  background-size:200% 100%;animation:shimmer 1.2s infinite;
+}
+.cat-skeleton.show{display:block}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.cat-drill-row{
+  display:none;align-items:center;justify-content:space-between;gap:8px;
+  padding:7px 10px;margin-top:6px;
+  background:var(--amber-bg);border:1px solid rgba(217,119,6,.2);
+  border-radius:var(--r-sm);font-size:12px;color:var(--amber-txt);
+}
+.cat-drill-row.show{display:flex}
+.cat-drill-actions{display:flex;gap:6px}
+
+.cat-confirmed{
+  display:none;align-items:center;gap:7px;
+  padding:7px 11px;margin-top:6px;
+  background:var(--green-bg);border:1px solid rgba(22,163,74,.25);
+  border-radius:var(--r-sm);font-size:12.5px;font-weight:600;color:var(--green-txt);
+}
+.cat-confirmed.show{display:flex}
+.cat-change-btn{
+  margin-right:auto;background:none;border:none;
+  color:var(--p2);cursor:pointer;font-family:var(--font);
+  font-size:11px;font-weight:600;padding:2px 6px;
+  border-radius:4px;transition:background var(--t);
+}
+.cat-change-btn:hover{background:rgba(26,107,74,.1)}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="content">
+
+  {# ══ عنوان صفحه ══ #}
+  <div class="sec-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--p2)"
+         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/>
+    </svg>
+    {% if instance %}ویرایش تراکنش #{{ instance.pk }}{% else %}ثبت تراکنش مالی{% endif %}
+    <span class="sec-badge">مالی</span>
+  </div>
+
+  {# ══ Django messages ══ #}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} mb-16">
+    <span class="alert-icon">
+      {% if "success" in msg.tags %}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      {% else %}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      {% endif %}
+    </span>
+    <div class="alert-body"><div class="alert-txt">{{ msg }}</div></div>
+    <button class="alert-close" onclick="this.closest('.alert').remove()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  {% endfor %}
+
+  {# ══ کارت اصلی ══ #}
+  <div class="card">
+    <form method="post" enctype="multipart/form-data" id="txnForm" novalidate>
+      {% csrf_token %}
+      {# کدام تب فعال بود — در POST برگردانده می‌شود #}
+      <input type="hidden" name="_active_tab" id="activeTabInput"
+             value="{{ active_tab }}">
+
+      <div class="d-flex align-c gap-8 mb-20 fw">
+
+        <button type="button" class="tab-arrow" id="tabPrev" title="قبلی">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+
+        <div class="tab-nav">
+          <button type="button"
+                  class="tab-nav-btn {% if active_tab == 'income' %}active{% endif %}"
+                  id="tnb0" data-tab="income" onclick="switchTab('income')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+              <polyline points="17 6 23 6 23 12"/>
+            </svg>
+            ثبت درآمد
+          </button>
+          <button type="button"
+                  class="tab-nav-btn {% if active_tab == 'expense' %}active{% endif %}"
+                  id="tnb1" data-tab="expense" onclick="switchTab('expense')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+              <polyline points="17 18 23 18 23 12"/>
+            </svg>
+            ثبت هزینه
+          </button>
+        </div>
+
+        <button type="button" class="tab-arrow" id="tabNext" title="بعدی">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+
+      </div>{# /tab switcher #}
+
+
+      <div class="tab-pane {% if active_tab == 'income' %}on{% endif %}" id="tp-income">
+
+        {# ── ROW 1: مبلغ + تاریخ ── #}
+        <div class="row">
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if inc_base.amount.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ inc_base.amount.id_for_label }}">
+                <span class="req">*</span> {{ inc_base.amount.label }}
+              </label>
+              {{ inc_base.amount }}
+              {% for e in inc_base.amount.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if inc_base.date.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ inc_base.date.id_for_label }}">
+                <span class="req">*</span> {{ inc_base.date.label }}
+              </label>
+              {{ inc_base.date }}
+              {% for e in inc_base.date.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── ROW 2: صندوق + رویداد ── #}
+        <div class="row">
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if inc_base.fund.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ inc_base.fund.id_for_label }}">
+                <span class="req">*</span> {{ inc_base.fund.label }}
+              </label>
+              {{ inc_base.fund }}
+              {% for e in inc_base.fund.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if inc_base.event.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ inc_base.event.id_for_label }}">{{ inc_base.event.label }}</label>
+              {{ inc_base.event }}
+              {% for e in inc_base.event.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── ROW 3: دسته‌بندی + نام پرداخت‌کننده ── #}
+        <div class="row">
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl"><span class="req">*</span> {{ inc_detail.category.label }}</label>
+              {# hidden input که Django پردازش می‌کند #}
+              {{ inc_detail.category }}
+              {# ویجت بصری کتگوری #}
+              {% include "_category_widget.html" with widget_id="inc" %}
+              {% for e in inc_detail.category.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              <div class="field-err" id="inc-cat-err" style="display:none">لطفاً یک دسته‌بندی انتخاب کنید.</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if inc_detail.payer_name.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ inc_detail.payer_name.id_for_label }}">
+                {{ inc_detail.payer_name.label }}
+              </label>
+              {{ inc_detail.payer_name }}
+              {% for e in inc_detail.payer_name.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── ROW 4: شماره مرجع ── #}
+        <div class="row">
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if inc_base.reference_number.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ inc_base.reference_number.id_for_label }}">
+                {{ inc_base.reference_number.label }}
+              </label>
+              {{ inc_base.reference_number }}
+              {% for e in inc_base.reference_number.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── ROW 5: توضیحات ── #}
+        <div class="row">
+          <div class="col-12">
+            <div class="form-group {% if inc_base.description.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ inc_base.description.id_for_label }}">{{ inc_base.description.label }}</label>
+              {{ inc_base.description }}
+              {% for e in inc_base.description.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── ROW 6: آپلود رسید ── #}
+        <div class="row">
+          <div class="col-12">
+            <div class="form-group {% if inc_base.image_receipt.errors %}has-err{% endif %}">
+              <label class="form-lbl">{{ inc_base.image_receipt.label }}</label>
+              {% include "_upload_widget.html" with upload_id="inc" form=inc_base %}
+              {% for e in inc_base.image_receipt.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── دکمه‌ها ── #}
+        <div class="sep"></div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            {% if instance %}ذخیره تغییرات{% else %}ثبت درآمد{% endif %}
+          </button>
+          <a href="{% url 'finance:transaction_list' %}" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            انصراف
+          </a>
+        </div>
+
+      </div>{# /tp-income #}
+
+      <div class="tab-pane {% if active_tab == 'expense' %}on{% endif %}" id="tp-expense">
+
+        {# ── ROW 1: مبلغ + تاریخ ── #}
+        <div class="row">
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if exp_base.amount.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ exp_base.amount.id_for_label }}">
+                <span class="req">*</span> {{ exp_base.amount.label }}
+              </label>
+              {{ exp_base.amount }}
+              {% for e in exp_base.amount.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if exp_base.date.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ exp_base.date.id_for_label }}">
+                <span class="req">*</span> {{ exp_base.date.label }}
+              </label>
+              {{ exp_base.date }}
+              {% for e in exp_base.date.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── ROW 2: صندوق + رویداد ── #}
+        <div class="row">
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if exp_base.fund.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ exp_base.fund.id_for_label }}">
+                <span class="req">*</span> {{ exp_base.fund.label }}
+              </label>
+              {{ exp_base.fund }}
+              {% for e in exp_base.fund.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if exp_base.event.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ exp_base.event.id_for_label }}">{{ exp_base.event.label }}</label>
+              {{ exp_base.event }}
+              {% for e in exp_base.event.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── ROW 3: دسته‌بندی + نام تأمین‌کننده ── #}
+        <div class="row">
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl"><span class="req">*</span> {{ exp_detail.category.label }}</label>
+              {{ exp_detail.category }}
+              {% include "_category_widget.html" with widget_id="exp" %}
+              {% for e in exp_detail.category.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              <div class="field-err" id="exp-cat-err" style="display:none">لطفاً یک دسته‌بندی انتخاب کنید.</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if exp_detail.vendor_name.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ exp_detail.vendor_name.id_for_label }}">
+                {{ exp_detail.vendor_name.label }}
+              </label>
+              {{ exp_detail.vendor_name }}
+              {% for e in exp_detail.vendor_name.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── ROW 4: شماره مرجع ── #}
+        <div class="row">
+          <div class="col-12 col-md-6">
+            <div class="form-group {% if exp_base.reference_number.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ exp_base.reference_number.id_for_label }}">
+                {{ exp_base.reference_number.label }}
+              </label>
+              {{ exp_base.reference_number }}
+              {% for e in exp_base.reference_number.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── ROW 5: توضیحات ── #}
+        <div class="row">
+          <div class="col-12">
+            <div class="form-group {% if exp_base.description.errors %}has-err{% endif %}">
+              <label class="form-lbl" for="{{ exp_base.description.id_for_label }}">{{ exp_base.description.label }}</label>
+              {{ exp_base.description }}
+              {% for e in exp_base.description.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── ROW 6: آپلود رسید ── #}
+        <div class="row">
+          <div class="col-12">
+            <div class="form-group {% if exp_base.image_receipt.errors %}has-err{% endif %}">
+              <label class="form-lbl">{{ exp_base.image_receipt.label }}</label>
+              {% include "_upload_widget.html" with upload_id="exp" form=exp_base %}
+              {% for e in exp_base.image_receipt.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {# ── دکمه‌ها ── #}
+        <div class="sep"></div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-danger">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            {% if instance %}ذخیره تغییرات{% else %}ثبت هزینه{% endif %}
+          </button>
+          <a href="{% url 'finance:transaction_list' %}" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            انصراف
+          </a>
+        </div>
+
+      </div>{# /tp-expense #}
+
+    </form>
+  </div>{# /card #}
+</div>{# /content #}
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/* ══════════════════════════════════════════════════════
+   TAB SWITCHER
+══════════════════════════════════════════════════════ */
+const TABS = ['income', 'expense'];
+let currentTab = '{{ active_tab }}';
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('activeTabInput').value = tab;
+
+  TABS.forEach(t => {
+    document.getElementById('tp-' + t).classList.toggle('on', t === tab);
+    document.getElementById('tnb' + (t === 'income' ? 0 : 1))
+            .classList.toggle('active', t === tab);
+  });
+}
+
+document.getElementById('tabPrev').addEventListener('click', () => {
+  const idx = TABS.indexOf(currentTab);
+  switchTab(TABS[(idx + TABS.length - 1) % TABS.length]);
+});
+document.getElementById('tabNext').addEventListener('click', () => {
+  const idx = TABS.indexOf(currentTab);
+  switchTab(TABS[(idx + 1) % TABS.length]);
+});
+
+
+/* ══════════════════════════════════════════════════════
+   CATEGORY WIDGET FACTORY
+   widgetId: 'inc' | 'exp'
+   type:     'income' | 'expense'
+   ancestors: [{id,name},…]  (ویرایش)
+══════════════════════════════════════════════════════ */
+function CategoryWidget(widgetId, type, ancestors) {
+  const AJAX_URL   = "{% url 'finance:ajax_categories' %}";
+  const hidden     = document.getElementById('id_' + widgetId + '_category');
+  const skeleton   = document.getElementById(widgetId + '-skel');
+  const breadcrumb = document.getElementById(widgetId + '-breadcrumb');
+  const trail      = document.getElementById(widgetId + '-trail');
+  const resetBtn   = document.getElementById(widgetId + '-reset');
+  const sel        = document.getElementById(widgetId + '-sel');
+  const drillRow   = document.getElementById(widgetId + '-drill');
+  const btnDrill   = document.getElementById(widgetId + '-drill-in');
+  const btnConfPar = document.getElementById(widgetId + '-conf-par');
+  const confirmed  = document.getElementById(widgetId + '-confirmed');
+  const confName   = document.getElementById(widgetId + '-conf-name');
+  const btnChange  = document.getElementById(widgetId + '-change');
+  const errEl      = document.getElementById(widgetId + '-cat-err');
+
+  let crumbs    = [];
+  let pendingId = null, pendingName = null;
+
+  // ── helpers ─────────────────────────────────────────
+  function showEl(el, v) { el.style.display = v ? '' : 'none'; }
+  function toggleCls(el, cls, v) { el.classList.toggle(cls, v); }
+
+  function renderTrail() {
+    trail.textContent = crumbs.map(c => c.name).join(' ← ');
+    toggleCls(breadcrumb, 'show', crumbs.length > 0);
+  }
+
+  function setConfirmed(id, name) {
+    hidden.value      = id;
+    confName.textContent = name;
+    pendingId = pendingName = null;
+    if (errEl) errEl.style.display = 'none';
+    toggleCls(drillRow,  'show', false);
+    toggleCls(confirmed, 'show', true);
+    showEl(sel, false);
+  }
+
+  function reset() {
+    crumbs    = [];
+    pendingId = pendingName = null;
+    hidden.value = '';
+    renderTrail();
+    toggleCls(drillRow,  'show', false);
+    toggleCls(confirmed, 'show', false);
+    showEl(sel, true);
+    load(null, null);
+  }
+
+  // ── Ajax ────────────────────────────────────────────
+  function load(parentId, preselectId) {
+    toggleCls(skeleton, 'show', true);
+    showEl(sel, false);
+
+    const url = `${AJAX_URL}?type=${type}${parentId ? '&parent_id=' + parentId : ''}`;
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(data => {
+        toggleCls(skeleton, 'show', false);
+        populate(data.categories, preselectId);
+      })
+      .catch(() => {
+        toggleCls(skeleton, 'show', false);
+        sel.innerHTML = '<option value="">خطا در بارگذاری</option>';
+        showEl(sel, true);
+      });
+  }
+
+  function populate(cats, preselectId) {
+    sel.innerHTML = '<option value="">— انتخاب دسته —</option>';
+    cats.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = c.name;
+      o.dataset.hasChildren = c.has_children ? '1' : '0';
+      if (String(c.id) === String(preselectId)) o.selected = true;
+      sel.appendChild(o);
+    });
+    showEl(sel, true);
+    if (preselectId) sel.dispatchEvent(new Event('change'));
+  }
+
+  // ── events ──────────────────────────────────────────
+  sel.addEventListener('change', function () {
+    const opt      = this.options[this.selectedIndex];
+    const id       = this.value;
+    const hasChild = opt?.dataset?.hasChildren === '1';
+    toggleCls(confirmed, 'show', false);
+    if (!id) { hidden.value = ''; toggleCls(drillRow, 'show', false); return; }
+    if (hasChild) {
+      pendingId = id; pendingName = opt.textContent.trim();
+      hidden.value = id;
+      toggleCls(drillRow, 'show', true);
+    } else {
+      crumbs.push({ id, name: opt.textContent.trim() });
+      renderTrail();
+      setConfirmed(id, opt.textContent.trim());
+    }
+  });
+
+  function drillIn() {
+    if (!pendingId) return;
+    crumbs.push({ id: pendingId, name: pendingName });
+    renderTrail();
+    load(pendingId, null);
+    toggleCls(drillRow, 'show', false);
+    pendingId = pendingName = null;
+  }
+
+  sel.addEventListener('dblclick', drillIn);
+  btnDrill.addEventListener('click', drillIn);
+
+  btnConfPar.addEventListener('click', () => {
+    if (!pendingId) return;
+    crumbs.push({ id: pendingId, name: pendingName });
+    renderTrail();
+    setConfirmed(pendingId, pendingName);
+  });
+
+  resetBtn.addEventListener('click',  reset);
+  btnChange.addEventListener('click', reset);
+
+  // ── form validation hook ─────────────────────────────
+  document.getElementById('txnForm').addEventListener('submit', function (e) {
+    const activeTab = document.getElementById('activeTabInput').value;
+    // فقط ویجت تب فعال را validate کن
+    const myTab = widgetId === 'inc' ? 'income' : 'expense';
+    if (activeTab !== myTab) return;
+    if (!hidden.value) {
+      e.preventDefault();
+      if (errEl) errEl.style.display = 'flex';
+      sel.focus();
+    }
+  });
+
+  // ── init ─────────────────────────────────────────────
+  if (ancestors && ancestors.length > 0) {
+    const leaf = ancestors[ancestors.length - 1];
+    crumbs = ancestors.slice(0, -1);
+    renderTrail();
+    const parentId = crumbs.length > 0 ? crumbs[crumbs.length - 1].id : null;
+    load(parentId, leaf.id);
+    setTimeout(() => { if (!hidden.value) setConfirmed(leaf.id, leaf.name); }, 700);
+  } else {
+    load(null, null);
+  }
+}
+
+// راه‌اندازی هر دو ویجت
+CategoryWidget(
+  'inc', 'income',
+  {{ inc_ancestors|default:"[]"|safe }}
+);
+CategoryWidget(
+  'exp', 'expense',
+  {{ exp_ancestors|default:"[]"|safe }}
+);
+
+
+/* ══════════════════════════════════════════════════════
+   FILE UPLOAD
+══════════════════════════════════════════════════════ */
+['inc', 'exp'].forEach(function (prefix) {
+  const input   = document.getElementById(prefix + '-file-input');
+  const area    = document.getElementById(prefix + '-upload-area');
+  const preview = document.getElementById(prefix + '-file-preview');
+  const txt     = document.getElementById(prefix + '-upload-txt');
+  if (!input) return;
+
+  function render(file) {
+    preview.innerHTML = `
+      <div class="file-item" style="margin-top:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p2)"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <span class="fi-name">${file.name}</span>
+        <span class="fi-size">${(file.size/1024).toFixed(0)} KB</span>
+        <span class="fi-del" onclick="clearFile('${prefix}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </span>
+      </div>`;
+    txt.innerHTML = `<strong>${file.name}</strong> انتخاب شد`;
+  }
+
+  input.addEventListener('change', () => { if (input.files[0]) render(input.files[0]); });
+  area.addEventListener('dragover',  e => { e.preventDefault(); area.style.borderColor = 'var(--p2)'; });
+  area.addEventListener('dragleave', ()  => { area.style.borderColor = ''; });
+  area.addEventListener('drop',      e => {
+    e.preventDefault(); area.style.borderColor = '';
+    const f = e.dataTransfer.files[0]; if (!f) return;
+    const dt = new DataTransfer(); dt.items.add(f); input.files = dt.files;
+    render(f);
+  });
+});
+
+window.clearFile = function (prefix) {
+  const input   = document.getElementById(prefix + '-file-input');
+  const preview = document.getElementById(prefix + '-file-preview');
+  const txt     = document.getElementById(prefix + '-upload-txt');
+  input.value = ''; preview.innerHTML = '';
+  txt.innerHTML = 'فایل را بکشید یا <span>انتخاب کنید</span>';
+};
+</script>
+{% endblock %}

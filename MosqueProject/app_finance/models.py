@@ -106,7 +106,7 @@ class FinancialTransaction(BaseModel):
 
     image_receipt = models.ImageField(upload_to='images/receipts')
 
-    event = models.ForeignKey(Event,on_delete=models.PROTECT)
+    event = models.ForeignKey(Event,on_delete=models.PROTECT, blank=True, null=True)
 
     reference_number = models.CharField(
         max_length=100,
