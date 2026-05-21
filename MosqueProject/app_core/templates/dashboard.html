@@ -1,0 +1,823 @@
+{% extends 'base/main.html' %}
+
+{% block title %}سامانه حسابداری مسجد{% endblock %}
+
+{% block content %}
+  <div class="content">
+    <!-- ════ WIDGETS ════ -->
+    <div class="sec-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      خلاصه وضعیت مالی
+      <span class="sec-badge">ویجت‌ها</span>
+    </div>
+    <div class="row mb-24">
+      <div class="col-12 col-sm-6 col-md-6 col-lg-3">
+        <div class="widget w-green">
+          <div class="widget-blob" style="background:#a7f3d0"></div>
+          <div class="widget-inner">
+            <div class="widget-lbl">کل درآمد ماه</div>
+            <div class="widget-val">۴۸,۵۰۰,۰۰۰</div>
+            <div class="widget-sub">تومان</div>
+            <div class="widget-footer">
+              <div class="widget-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <span class="widget-trend">↑ ۱۲٪ رشد</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-6 col-lg-3">
+        <div class="widget w-red">
+          <div class="widget-blob" style="background:#fecaca"></div>
+          <div class="widget-inner">
+            <div class="widget-lbl">کل هزینه ماه</div>
+            <div class="widget-val">۲۲,۱۰۰,۰۰۰</div>
+            <div class="widget-sub">تومان</div>
+            <div class="widget-footer">
+              <div class="widget-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <span class="widget-trend">↓ ۵٪ کاهش</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-6 col-lg-3">
+        <div class="widget w-amber">
+          <div class="widget-blob" style="background:#fde68a"></div>
+          <div class="widget-inner">
+            <div class="widget-lbl">موجودی صندوق</div>
+            <div class="widget-val">۲۶,۴۰۰,۰۰۰</div>
+            <div class="widget-sub">تومان</div>
+            <div class="widget-footer">
+              <div class="widget-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              </div>
+              <span class="widget-trend">↑ خالص سود</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-6 col-lg-3">
+        <div class="widget w-blue">
+          <div class="widget-blob" style="background:#bfdbfe"></div>
+          <div class="widget-inner">
+            <div class="widget-lbl">ارزش انبار</div>
+            <div class="widget-val">۸,۷۵۰,۰۰۰</div>
+            <div class="widget-sub">تومان | ۱۴۲ قلم</div>
+            <div class="widget-footer">
+              <div class="widget-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              </div>
+              <span class="widget-trend">↑ ۳ کالا جدید</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row mb-24">
+      <div class="col-12 col-md-4">
+        <div class="widget w-purple">
+          <div class="widget-blob" style="background:#e9d5ff"></div>
+          <div class="widget-inner">
+            <div class="widget-lbl">خیرات و نذورات</div>
+            <div class="widget-val">۱۵,۲۰۰,۰۰۰</div>
+            <div class="widget-sub">۸۷ پرداخت‌کننده</div>
+            <div class="widget-footer">
+              <div class="widget-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </div>
+              <span class="widget-trend">↑ ۲۲٪ رشد</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="widget w-teal">
+          <div class="widget-blob" style="background:#99f6e4"></div>
+          <div class="widget-inner">
+            <div class="widget-lbl">اسناد در انتظار</div>
+            <div class="widget-val">۱۳</div>
+            <div class="widget-sub">سند نیاز به تأیید</div>
+            <div class="widget-footer">
+              <div class="widget-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <span class="widget-trend">اقدام فوری</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="widget w-green" style="background:linear-gradient(135deg,#065f46,#047857)">
+          <div class="widget-inner">
+            <div class="widget-lbl">مسجد امام حسین (ع)</div>
+            <div class="widget-val" style="font-size:16px;line-height:1.4">۱۴ اردیبهشت ۱۴۰۴</div>
+            <div class="widget-sub">خیابان شهدا — تهران</div>
+            <div class="widget-footer">
+              <div class="widget-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <span class="widget-trend">نمازهای روزانه برگزار</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ FORM ════ -->
+    <div class="card mb-24">
+      <div class="sec-title" style="margin-bottom:18px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        فرم ثبت تراکنش
+        <span class="sec-badge">فرم کامل</span>
+      </div>
+
+      <!-- tab nav -->
+      <div class="d-flex align-c gap-8 mb-20 fw">
+        <button class="tab-arrow" onclick="prevTab()" title="قبلی">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="tab-nav">
+          <button class="tab-nav-btn active" id="tnb0" onclick="switchTab(0)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            ثبت درآمد
+          </button>
+          <button class="tab-nav-btn" id="tnb1" onclick="switchTab(1)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+            ثبت هزینه
+          </button>
+        </div>
+        <button class="tab-arrow" onclick="nextTab()" title="بعدی">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <!-- TAB 0 -->
+      <div class="tab-pane on" id="tp0">
+        <div class="row">
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl"><span class="req">* </span>عنوان درآمد</label>
+              <input type="text" class="form-ctrl" placeholder="مثال: خیرات جمعه">
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl"><span class="req">* </span>مبلغ (تومان)</label>
+              <input type="number" class="form-ctrl" placeholder="۰">
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">دسته‌بندی</label>
+              <select class="form-ctrl">
+                <option>— انتخاب دسته —</option>
+                <option>نذورات</option><option>خیرات</option>
+                <option>کمک‌های مردمی</option><option>وقف</option><option>سایر</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">تاریخ پرداخت</label>
+              <input type="date" class="form-ctrl">
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">روش پرداخت</label>
+              <div class="radio-row">
+                <label class="radio-item"><input type="radio" name="pm" checked><span class="radio-dot"></span><span class="radio-lbl">نقدی</span></label>
+                <label class="radio-item"><input type="radio" name="pm"><span class="radio-dot"></span><span class="radio-lbl">کارتخوان</span></label>
+                <label class="radio-item"><input type="radio" name="pm"><span class="radio-dot"></span><span class="radio-lbl">انتقال بانکی</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">برچسب‌ها</label>
+              <div class="ms-wrap">
+                <div class="ms-box" id="msb1" onclick="toggleMs('msb1','msd1')">
+                  <span class="pill">ماه رمضان <span class="pill-x" onclick="event.stopPropagation()">×</span></span>
+                  <span class="ms-ph">+ افزودن...</span>
+                </div>
+                <div class="ms-drop" id="msd1">
+                  <div class="ms-opt sel" onclick="selOpt(this,'msb1','msd1')"><span class="ms-chk">✓</span>ماه رمضان</div>
+                  <div class="ms-opt" onclick="selOpt(this,'msb1','msd1')"><span class="ms-chk"></span>محرم</div>
+                  <div class="ms-opt" onclick="selOpt(this,'msb1','msd1')"><span class="ms-chk"></span>صفر</div>
+                  <div class="ms-opt" onclick="selOpt(this,'msb1','msd1')"><span class="ms-chk"></span>عید فطر</div>
+                  <div class="ms-opt" onclick="selOpt(this,'msb1','msd1')"><span class="ms-chk"></span>عید قربان</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-group">
+              <label class="form-lbl">توضیحات</label>
+              <textarea class="form-ctrl" placeholder="توضیحات تکمیلی..."></textarea>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">میزان اطمینان</label>
+              <div class="range-wrap">
+                <input type="range" min="1" max="100" value="85" oninput="this.nextElementSibling.textContent=this.value+'٪'">
+                <div class="range-val">۸۵٪</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">گزینه‌ها</label>
+              <label class="chk-wrap"><input type="checkbox" checked><span class="chk-box"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 6 4.5 9 10.5 3"/></svg></span><span class="chk-lbl">اطلاع‌رسانی به مدیر</span></label>
+              <label class="chk-wrap"><input type="checkbox"><span class="chk-box"></span><span class="chk-lbl">نیاز به تأیید حسابرس</span></label>
+              <label class="chk-wrap"><input type="checkbox" checked><span class="chk-box"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 6 4.5 9 10.5 3"/></svg></span><span class="chk-lbl">چاپ رسید</span></label>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-group">
+              <label class="form-lbl">آپلود تصویر رسید</label>
+              <div class="upload-area" onclick="document.getElementById('fu1').click()">
+                <input type="file" id="fu1" accept="image/*,application/pdf" multiple onchange="handleFiles(this)">
+                <div class="upload-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div class="upload-txt">فایل را بکشید یا <span>انتخاب کنید</span></div>
+                <div class="upload-hint">JPG, PNG, PDF — حداکثر ۵ مگابایت</div>
+              </div>
+              <div class="file-list" id="fl1"></div>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row mt-12">
+          <button class="btn btn-primary" onclick="showToast('success','ثبت موفق','درآمد با موفقیت ثبت شد')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            ثبت درآمد
+          </button>
+          <button class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+            پاک‌سازی
+          </button>
+          <button class="btn btn-outline">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            پیش‌نمایش
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1 -->
+      <div class="tab-pane" id="tp1">
+        <div class="row">
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl"><span class="req">* </span>عنوان هزینه</label>
+              <input type="text" class="form-ctrl" placeholder="مثال: خرید فرش">
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl"><span class="req">* </span>مبلغ (تومان)</label>
+              <input type="number" class="form-ctrl" placeholder="۰">
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">دسته‌بندی هزینه</label>
+              <select class="form-ctrl">
+                <option>— انتخاب دسته —</option>
+                <option>تعمیرات</option><option>خرید لوازم</option>
+                <option>برق و آب و گاز</option><option>حقوق</option><option>بیمه</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">تأمین‌کننده</label>
+              <select class="form-ctrl">
+                <option>— انتخاب —</option>
+                <option>شرکت البرز کالا</option><option>فروشگاه مکه</option><option>تعمیرکار ساختمان</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">شماره فاکتور</label>
+              <input type="text" class="form-ctrl" placeholder="INV-00123">
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">تاریخ هزینه</label>
+              <input type="date" class="form-ctrl">
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-group">
+              <label class="form-lbl">توضیحات</label>
+              <textarea class="form-ctrl" placeholder="جزئیات هزینه..."></textarea>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">وضعیت پرداخت</label>
+              <div class="radio-row">
+                <label class="radio-item"><input type="radio" name="ps" checked><span class="radio-dot"></span><span class="radio-lbl">پرداخت شد</span></label>
+                <label class="radio-item"><input type="radio" name="ps"><span class="radio-dot"></span><span class="radio-lbl">در انتظار</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-group">
+              <label class="form-lbl">گزینه‌ها</label>
+              <label class="chk-wrap"><input type="checkbox" checked><span class="chk-box"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 6 4.5 9 10.5 3"/></svg></span><span class="chk-lbl">نیاز به تأیید</span></label>
+              <label class="chk-wrap"><input type="checkbox"><span class="chk-box"></span><span class="chk-lbl">ثبت در انبار</span></label>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-group">
+              <label class="form-lbl">آپلود فاکتور</label>
+              <div class="upload-area" onclick="document.getElementById('fu2').click()">
+                <input type="file" id="fu2" accept="image/*,application/pdf" multiple>
+                <div class="upload-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </div>
+                <div class="upload-txt">فاکتور را بکشید یا <span>انتخاب کنید</span></div>
+                <div class="upload-hint">JPG, PNG, PDF — حداکثر ۵ مگابایت</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row mt-12">
+          <button class="btn btn-danger" onclick="showToast('danger','خطا','مبلغ وارد نشده است')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            ثبت هزینه
+          </button>
+          <button class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+            پاک‌سازی
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ LISTS ════ -->
+    <div class="row mb-24">
+      <!-- scroll -->
+      <div class="col-12 col-md-6">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">
+              <span class="card-icon" style="background:var(--green-bg)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </span>
+              آخرین تراکنش‌ها
+            </div>
+            <span class="badge bdg-green">اسکرولی</span>
+          </div>
+          <div class="scroll-list">
+            <div class="list-row">
+              <div class="li-av" style="background:var(--green-bg);color:var(--green)">ن</div>
+              <div class="li-info"><div class="li-name">نذورات جمعه</div><div class="li-sub">۱۴۰۴/۰۲/۱۴ · نقدی</div></div>
+              <div class="li-amt income">+۲,۵۰۰,۰۰۰</div>
+            </div>
+            <div class="list-row">
+              <div class="li-av" style="background:var(--red-bg);color:var(--red)">ه</div>
+              <div class="li-info"><div class="li-name">هزینه برق</div><div class="li-sub">۱۴۰۴/۰۲/۱۳ · بانک</div></div>
+              <div class="li-amt expense">-۸۵۰,۰۰۰</div>
+            </div>
+            <div class="list-row">
+              <div class="li-av" style="background:var(--amber-bg);color:var(--amber)">خ</div>
+              <div class="li-info"><div class="li-name">خیرات حاج محمود</div><div class="li-sub">۱۴۰۴/۰۲/۱۲ · نقدی</div></div>
+              <div class="li-amt income">+۵,۰۰۰,۰۰۰</div>
+            </div>
+            <div class="list-row">
+              <div class="li-av" style="background:var(--red-bg);color:var(--red)">ت</div>
+              <div class="li-info"><div class="li-name">تعمیر پشت‌بام</div><div class="li-sub">۱۴۰۴/۰۲/۱۱ · نقدی</div></div>
+              <div class="li-amt expense">-۳,۲۰۰,۰۰۰</div>
+            </div>
+            <div class="list-row">
+              <div class="li-av" style="background:var(--green-bg);color:var(--green)">ک</div>
+              <div class="li-info"><div class="li-name">کمک خیر ناشناس</div><div class="li-sub">۱۴۰۴/۰۲/۱۰ · کارتخوان</div></div>
+              <div class="li-amt income">+۱,۰۰۰,۰۰۰</div>
+            </div>
+            <div class="list-row">
+              <div class="li-av" style="background:var(--red-bg);color:var(--red)">ح</div>
+              <div class="li-info"><div class="li-name">حقوق خادم</div><div class="li-sub">۱۴۰۴/۰۲/۰۹ · بانک</div></div>
+              <div class="li-amt expense">-۴,۵۰۰,۰۰۰</div>
+            </div>
+            <div class="list-row">
+              <div class="li-av" style="background:var(--blue-bg);color:var(--blue)">و</div>
+              <div class="li-info"><div class="li-name">وقف زمین</div><div class="li-sub">۱۴۰۴/۰۲/۰۸ · سند</div></div>
+              <div class="li-amt income">+۱۰,۰۰۰,۰۰۰</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- paginated - backend-only pagination, no JS -->
+      <div class="col-12 col-md-6">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">
+              <span class="card-icon" style="background:var(--blue-bg)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </span>
+              لیست اسناد
+            </div>
+            <span class="badge bdg-blue">صفحه‌بندی</span>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>#</th><th>شماره سند</th><th>نوع</th><th>مبلغ</th><th>وضعیت</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>۱</td><td class="td-main">INV-001</td><td>درآمد</td><td class="text-success fw-700">۲,۵۰۰,۰۰۰</td><td><span class="badge bdg-green"><span class="dot"></span>تأیید</span></td></tr>
+                <tr><td>۲</td><td class="td-main">INV-002</td><td>هزینه</td><td class="text-danger fw-700">۸۵۰,۰۰۰</td><td><span class="badge bdg-red"><span class="dot"></span>رد</span></td></tr>
+                <tr><td>۳</td><td class="td-main">INV-003</td><td>درآمد</td><td class="text-success fw-700">۵,۰۰۰,۰۰۰</td><td><span class="badge bdg-green"><span class="dot"></span>تأیید</span></td></tr>
+                <tr><td>۴</td><td class="td-main">INV-004</td><td>هزینه</td><td class="text-danger fw-700">۳,۲۰۰,۰۰۰</td><td><span class="badge bdg-amber"><span class="dot"></span>انتظار</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- صفحه‌بندی بک‌اند — لینک‌ها را به URL صفحه بک‌اند متصل کنید -->
+          <div class="pagination">
+            <span class="pg-info">نمایش ۱–۴ از ۱۲ رکورد</span>
+            <div class="pg-btns">
+              <button class="pg-btn disabled">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <button class="pg-btn active">۱</button>
+              <button class="pg-btn">۲</button>
+              <button class="pg-btn">۳</button>
+              <button class="pg-btn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ BUTTONS ════ -->
+    <div class="card mb-24">
+      <div class="sec-title" style="margin-bottom:18px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/></svg>
+        کتابخانه دکمه‌ها
+        <span class="sec-badge">UI Components</span>
+      </div>
+
+      <div class="fs-12 text-muted fw-600 mb-8">سایزها:</div>
+      <div class="btn-row mb-16">
+        <button class="btn btn-primary btn-sm">کوچک</button>
+        <button class="btn btn-primary">معمولی</button>
+        <button class="btn btn-primary btn-lg">بزرگ</button>
+        <button class="btn btn-primary btn-xl">خیلی بزرگ</button>
+      </div>
+
+      <div class="fs-12 text-muted fw-600 mb-8">رنگ‌های توپر:</div>
+      <div class="btn-row mb-16">
+        <button class="btn btn-primary">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+          درآمد
+        </button>
+        <button class="btn btn-success">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          تأیید
+        </button>
+        <button class="btn btn-danger">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          حذف
+        </button>
+        <button class="btn btn-warning">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          هشدار
+        </button>
+        <button class="btn btn-info">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          اطلاعات
+        </button>
+        <button class="btn btn-purple">بنفش</button>
+        <button class="btn btn-teal">آبی‌سبز</button>
+      </div>
+
+      <div class="fs-12 text-muted fw-600 mb-8">خطوطی، شیشه‌ای و ویژه:</div>
+      <div class="btn-row mb-16">
+        <button class="btn btn-outline">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          درآمد جدید
+        </button>
+        <button class="btn btn-outline-danger">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          حذف
+        </button>
+        <button class="btn btn-ghost">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          مشاهده
+        </button>
+        <button class="btn btn-glass">شیشه‌ای</button>
+        <button class="btn btn-gradient">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          گرادیان
+        </button>
+        <button class="btn btn-gradient-warm">گرم</button>
+        <button class="btn btn-primary btn-pill">گرد</button>
+        <button class="btn btn-loading btn-primary">پردازش</button>
+      </div>
+
+      <div class="fs-12 text-muted fw-600 mb-8">آیکون‌دار:</div>
+      <div class="btn-row mb-16">
+        <button class="btn btn-primary btn-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="btn btn-danger btn-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+        </button>
+        <button class="btn btn-info btn-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+        </button>
+        <button class="btn btn-ghost btn-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </button>
+      </div>
+
+      <button class="btn btn-primary btn-block btn-lg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        ذخیره همه تغییرات
+      </button>
+    </div>
+
+    <!-- ════ CHARTS ════ -->
+    <div class="sec-title mb-16">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      نمودارها
+      <span class="sec-badge">گزارش تصویری</span>
+    </div>
+    <div class="row mb-24">
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">
+              <span class="card-icon" style="background:var(--green-bg)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              </span>
+              درآمد و هزینه ماهانه
+            </div>
+          </div>
+          <div class="bar-chart" id="barChart"></div>
+          <div class="chart-legend">
+            <div class="leg-item"><div class="leg-dot" style="background:#22c55e"></div>درآمد</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div>هزینه</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">
+              <span class="card-icon" style="background:var(--amber-bg)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+              </span>
+              توزیع درآمدها
+            </div>
+          </div>
+          <div class="donut-wrap">
+            <div class="donut-svg"><svg viewBox="0 0 100 100" id="donutSvg"></svg><div class="donut-center"><span class="dv">۱۰۰٪</span><span class="dl">کل</span></div></div>
+            <div class="donut-rows" id="donutRows"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-4">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">
+              <span class="card-icon" style="background:var(--blue-bg)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+              پیشرفت اهداف
+            </div>
+          </div>
+          <div class="prog-list" id="progList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-24">
+      <div class="col-12 col-md-8">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">
+              <span class="card-icon" style="background:#f5f3ff">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </span>
+              روند گردش صندوق — ۶ ماه اخیر
+            </div>
+          </div>
+          <div class="line-wrap"><svg id="lineChart" viewBox="0 0 500 140" preserveAspectRatio="none"></svg></div>
+          <div class="chart-legend mt-12">
+            <div class="leg-item"><div class="leg-dot" style="background:#22c55e"></div>درآمد</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div>هزینه</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#f59e0b"></div>موجودی</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">
+              <span class="card-icon" style="background:#f0fdfa">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              </span>
+              وضعیت انبار
+            </div>
+          </div>
+          <div class="prog-list">
+            <div class="prog-item">
+              <div class="prog-hd"><span class="prog-lbl">فرش و موکت</span><span class="prog-val" style="color:var(--teal)">۸۵٪</span></div>
+              <div class="prog-bg"><div class="prog-bar" style="width:85%;background:var(--teal)"></div></div>
+            </div>
+            <div class="prog-item">
+              <div class="prog-hd"><span class="prog-lbl">لوازم برقی</span><span class="prog-val text-warning">۴۲٪</span></div>
+              <div class="prog-bg"><div class="prog-bar" style="width:42%;background:var(--amber)"></div></div>
+            </div>
+            <div class="prog-item">
+              <div class="prog-hd"><span class="prog-lbl">ملزومات نظافت</span><span class="prog-val text-danger">۱۸٪</span></div>
+              <div class="prog-bg"><div class="prog-bar" style="width:18%;background:var(--red)"></div></div>
+            </div>
+            <div class="prog-item">
+              <div class="prog-hd"><span class="prog-lbl">صوت و تصویر</span><span class="prog-val text-info">۶۳٪</span></div>
+              <div class="prog-bg"><div class="prog-bar" style="width:63%;background:var(--blue)"></div></div>
+            </div>
+            <div class="prog-item">
+              <div class="prog-hd"><span class="prog-lbl">کتب و قرآن</span><span class="prog-val" style="color:var(--amber)">۹۱٪</span></div>
+              <div class="prog-bg"><div class="prog-bar" style="width:91%;background:var(--amber)"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ ALERTS ════ -->
+    <div class="card mb-24">
+      <div class="sec-title" style="margin-bottom:18px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        پیام‌های سیستمی
+        <span class="sec-badge">Alert & Toast</span>
+      </div>
+      <div class="row">
+        <div class="col-12 col-md-6">
+          <div class="alert alert-success">
+            <span class="alert-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </span>
+            <div class="alert-body">
+              <div class="alert-title">ثبت موفق</div>
+              <div class="alert-txt">تراکنش شماره ۱۲۳۴ با موفقیت ثبت و در سیستم ذخیره شد.</div>
+            </div>
+            <button class="alert-close" onclick="this.closest('.alert').remove()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="alert alert-danger">
+            <span class="alert-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </span>
+            <div class="alert-body">
+              <div class="alert-title">خطا در ثبت</div>
+              <div class="alert-txt">فیلدهای اجباری تکمیل نشده‌اند. لطفاً مبلغ و دسته‌بندی را وارد کنید.</div>
+            </div>
+            <button class="alert-close" onclick="this.closest('.alert').remove()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="alert alert-warning">
+            <span class="alert-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+            <div class="alert-body">
+              <div class="alert-title">هشدار موجودی</div>
+              <div class="alert-txt">موجودی صندوق به زیر حد مجاز رسیده است. لطفاً بررسی کنید.</div>
+            </div>
+            <button class="alert-close" onclick="this.closest('.alert').remove()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="alert alert-info">
+            <span class="alert-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </span>
+            <div class="alert-body">
+              <div class="alert-title">یادآوری</div>
+              <div class="alert-txt">گزارش ماهانه اردیبهشت آماده است. برای مشاهده کلیک کنید.</div>
+            </div>
+            <button class="alert-close" onclick="this.closest('.alert').remove()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <div class="fs-12 text-muted fw-600 mb-8">نمایش Toast زنده:</div>
+      <div class="btn-row">
+        <button class="btn btn-success btn-sm" onclick="showToast('success','عملیات موفق','تراکنش با موفقیت ثبت شد')">Toast موفق</button>
+        <button class="btn btn-danger btn-sm" onclick="showToast('danger','خطا رخ داد','اتصال به سرور قطع است')">Toast خطا</button>
+        <button class="btn btn-warning btn-sm" onclick="showToast('warning','هشدار','موجودی کمتر از حد مجاز')">Toast هشدار</button>
+        <button class="btn btn-info btn-sm" onclick="showToast('info','اطلاعیه','نسخه جدید سیستم منتشر شد')">Toast اطلاع</button>
+      </div>
+    </div>
+
+    <!-- ════ RECEIPT ════ -->
+    <div class="row mb-24">
+      <div class="col-12 col-md-5">
+        <div class="receipt-card">
+          <div class="receipt-hd">
+            <div class="receipt-hd-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              رسید شماره INV-00125
+            </div>
+            <span class="badge bdg-green"><span class="dot"></span>تأیید شده</span>
+          </div>
+          <div class="receipt-main" id="rMain">
+            <div class="receipt-empty">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>تصویری انتخاب نشده</span>
+              <span class="fs-11 text-muted">روی بندانگشتی کلیک کنید</span>
+            </div>
+          </div>
+          <div class="receipt-thumbs">
+            <div class="r-thumb active" onclick="selThumb(this,'t1')" title="رسید ۱">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="r-thumb" onclick="selThumb(this,'t2')" title="فاکتور">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            </div>
+            <div class="r-thumb" onclick="selThumb(this,'t3')" title="سند بانکی">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="r-thumb" onclick="selThumb(this,'t4')" title="بارکد">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h.01M17 7h.01M7 12h10M7 17h.01M17 17h.01"/></svg>
+            </div>
+          </div>
+          <div class="receipt-actions">
+            <button class="btn btn-primary btn-sm flex-1">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              دانلود
+            </button>
+            <button class="btn btn-ghost btn-sm flex-1">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              بزرگ‌نمایی
+            </button>
+            <button class="btn btn-outline-danger btn-sq">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-7">
+        <div class="card">
+          <div class="sec-title" style="margin-bottom:14px;font-size:14px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            اطلاعات سند
+          </div>
+          <div class="row">
+            <div class="col-6 mb-12"><div class="fs-11 text-muted mb-8">شماره سند</div><div class="fw-700">INV-00125</div></div>
+            <div class="col-6 mb-12"><div class="fs-11 text-muted mb-8">تاریخ</div><div class="fw-700">۱۴۰۴/۰۲/۱۴</div></div>
+            <div class="col-6 mb-12"><div class="fs-11 text-muted mb-8">مبلغ</div><div class="fw-700 text-success">۲,۵۰۰,۰۰۰ تومان</div></div>
+            <div class="col-6 mb-12"><div class="fs-11 text-muted mb-8">نوع</div><div><span class="badge bdg-green">درآمد</span></div></div>
+            <div class="col-6 mb-12"><div class="fs-11 text-muted mb-8">پرداخت‌کننده</div><div class="fw-700">حاج محمود رضایی</div></div>
+            <div class="col-6 mb-12"><div class="fs-11 text-muted mb-8">دسته‌بندی</div><div><span class="badge bdg-amber">نذورات</span></div></div>
+            <div class="col-12"><div class="fs-11 text-muted mb-8">توضیحات</div><div style="font-size:12.5px;color:var(--txt2);line-height:1.65">نذر امام حسین (ع) برای برگزاری مراسم اربعین — جمعه ۱۴ اردیبهشت ۱۴۰۴</div></div>
+          </div>
+          <div class="btn-row mt-12">
+            <button class="btn btn-outline btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+              ویرایش
+            </button>
+            <button class="btn btn-ghost btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              چاپ
+            </button>
+            <button class="btn btn-outline-danger btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+              حذف
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:18px 0;font-size:11.5px;color:var(--txt3);border-top:1px solid var(--border)">
+      سامانه مالی مسجد — نسخه ۱.۰.۰ &nbsp;·&nbsp; تمامی حقوق محفوظ است
+    </div>
+
+  </div><!-- /content -->
+{% endblock %}

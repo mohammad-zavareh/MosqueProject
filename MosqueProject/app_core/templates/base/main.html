@@ -1,0 +1,53 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'custom/css/style.css' %}">
+</head>
+<body>
+
+<!-- TOASTS -->
+<div class="toast-wrap" id="toastWrap"></div>
+<!-- OVERLAY -->
+<div class="overlay" id="overlay" onclick="closeSb()"></div>
+
+{% include 'base/sidebar.html' %}
+
+<!-- ════════════════ MAIN ════════════════ -->
+<div class="main" id="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="tb-toggle" onclick="openSb()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="tb-title">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3m4-3v3m4-3v3"/></svg>
+      پنل مدیریت حسابداری مسجد
+      <span class="tb-pill">داشبورد</span>
+    </div>
+    <div class="tb-actions">
+      <div class="tb-btn" title="اعلان‌ها">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="tb-notif-dot"></span>
+      </div>
+      <div class="tb-btn" title="جستجو">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <div class="tb-btn" title="تنظیمات">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+{% block content %}{% endblock %}
+
+</div><!-- /main -->
+<script src="{% static 'custom/js/myscript.js' %}"></script>
+</body>
+</html>
