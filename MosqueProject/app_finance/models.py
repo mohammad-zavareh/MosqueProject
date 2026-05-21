@@ -80,7 +80,6 @@ class FinancialTransaction(BaseModel):
     TRANSACTION_TYPES = [
         ('INCOME', 'درآمد'),
         ('EXPENSE', 'هزینه'),
-        ('TRANSFER', 'انتقال'),
     ]
 
     transaction_type = models.CharField(
@@ -185,35 +184,3 @@ class ExpenseDetail(BaseModel):
 
     def __str__(self):
         return f"Expense #{self.id}"
-
-
-# ---------------------------------------------------------
-# Transfer Detail
-# ---------------------------------------------------------
-
-class TransferDetail(BaseModel):
-
-    transaction = models.OneToOneField(
-        FinancialTransaction,
-        on_delete=models.CASCADE,
-        related_name='transfer_detail'
-    )
-
-    from_fund = models.ForeignKey(
-        Fund,
-        on_delete=models.PROTECT,
-        related_name='outgoing_transfers'
-    )
-
-    to_fund = models.ForeignKey(
-        Fund,
-        on_delete=models.PROTECT,
-        related_name='incoming_transfers'
-    )
-
-    class Meta:
-        verbose_name = "جزئیات انتقال"
-        verbose_name_plural = "جزئیات انتقال‌ها"
-
-    def __str__(self):
-        return f"{self.from_fund} -> {self.to_fund}"

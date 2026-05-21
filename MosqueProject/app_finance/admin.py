@@ -227,15 +227,6 @@ class ExpenseDetailInline(admin.StackedInline):
     autocomplete_fields = ('category',)
 
 
-class TransferDetailInline(admin.StackedInline):
-
-    model = TransferDetail
-    extra = 0
-    autocomplete_fields = (
-        'from_fund',
-        'to_fund',
-    )
-
 
 # =========================
 # Financial Transaction
@@ -302,9 +293,6 @@ class FinancialTransactionAdmin(FinanceBaseAdmin):
 
         elif obj.transaction_type == 'EXPENSE':
             inlines.append(ExpenseDetailInline(self.model, self.admin_site))
-
-        elif obj.transaction_type == 'TRANSFER':
-            inlines.append(TransferDetailInline(self.model, self.admin_site))
 
         return inlines
 
@@ -416,32 +404,3 @@ class ExpenseDetailAdmin(FinanceBaseAdmin):
     ) + FinanceBaseAdmin.fieldsets
 
 
-# =========================
-# Transfer Detail
-# =========================
-
-@admin.register(TransferDetail)
-class TransferDetailAdmin(FinanceBaseAdmin):
-
-    list_display = (
-        'id',
-        'transaction',
-        'from_fund',
-        'to_fund',
-    )
-
-    autocomplete_fields = (
-        'transaction',
-        'from_fund',
-        'to_fund',
-    )
-
-    fieldsets = (
-        ('جزئیات انتقال', {
-            'fields': (
-                'transaction',
-                'from_fund',
-                'to_fund',
-            )
-        }),
-    ) + FinanceBaseAdmin.fieldsets
