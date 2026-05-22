@@ -4,18 +4,108 @@ from django.db import transaction as db_transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
+from django.db.models import Q
 from django.views.generic import TemplateView, ListView
 
 from .forms import TransactionBaseForm, IncomeDetailForm, ExpenseDetailForm
 from .models import (
     FinancialTransaction, IncomeDetail, ExpenseDetail,
-    IncomeCategory, ExpenseCategory,
+    IncomeCategory, ExpenseCategory,Fund
 )
 
 class TransactionListView(LoginRequiredMixin, ListView):
-    model = FinancialTransaction
-    template_name = "transaction_list.html"
+    model               = FinancialTransaction
+    template_name       = "transaction_list.html"
+    context_object_name = "transactions"
+    paginate_by         = 15
 
+    SEARCH_FIELDS = [
+        "reference_number",
+        "description",
+        "income_detail__payer_name",
+        "expense_detail__vendor_name",
+        "income_detail__category__name",
+        "expense_detail__category__name",
+        "fund__name",
+        "event__name",
+    ]
+
+    def get_queryset(self):
+        qs = (
+            FinancialTransaction.objects
+            .select_related(
+                "fund", "event",
+                "income_detail__category",
+                "expense_detail__category",
+            )
+            .order_by("-date", "-created_at")
+        )
+
+        p = self.request.GET
+
+        q = p.get("q", "").strip()
+        if q:
+            cond = Q()
+            for f in self.SEARCH_FIELDS:
+                cond |= Q(**{f"{f}__icontains": q})
+            qs = qs.filter(cond)
+
+        txn_type = p.get("type", "").upper()
+        if txn_type in ("INCOME", "EXPENSE"):
+            qs = qs.filter(transaction_type=txn_type)
+
+        fund_id = p.get("fund", "")
+        if fund_id.isdigit():
+            qs = qs.filter(fund_id=fund_id)
+
+        date_from = p.get("date_from", "").strip()
+        date_to   = p.get("date_to",   "").strip()
+        if date_from:
+            qs = qs.filter(date__gte=date_from)
+        if date_to:
+            qs = qs.filter(date__lte=date_to)
+
+        amount_min = p.get("amount_min", "").strip()
+        amount_max = p.get("amount_max", "").strip()
+        if amount_min:
+            qs = qs.filter(amount__gte=amount_min)
+        if amount_max:
+            qs = qs.filter(amount__lte=amount_max)
+
+        ordering = p.get("ordering", "")
+        if ordering in ("date", "-date", "amount", "-amount"):
+            qs = qs.order_by(ordering)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        p   = self.request.GET
+
+        ctx["funds"] = Fund.objects.only("id", "name").order_by("name")
+
+        # فیلترهای فعال — برای نمایش badge و پر کردن فرم
+        ctx["f_q"]          = p.get("q",          "").strip()
+        ctx["f_type"]       = p.get("type",        "").upper()
+        ctx["f_fund"]       = p.get("fund",        "")
+        ctx["f_date_from"]  = p.get("date_from",   "").strip()
+        ctx["f_date_to"]    = p.get("date_to",     "").strip()
+        ctx["f_amount_min"] = p.get("amount_min",  "").strip()
+        ctx["f_amount_max"] = p.get("amount_max",  "").strip()
+        ctx["f_ordering"]   = p.get("ordering",    "")
+
+        ctx["has_filters"] = any([
+            ctx["f_q"], ctx["f_type"], ctx["f_fund"],
+            ctx["f_date_from"], ctx["f_date_to"],
+            ctx["f_amount_min"], ctx["f_amount_max"],
+        ])
+
+        # querystring بدون page — برای لینک‌های pagination
+        params = p.copy()
+        params.pop("page", None)
+        ctx["qs_no_page"] = ("&" + params.urlencode()) if params else ""
+
+        return ctx
 
 # ── کمکی: کتگوری → dict ──────────────────────────────────────
 def _cat_json(c):
