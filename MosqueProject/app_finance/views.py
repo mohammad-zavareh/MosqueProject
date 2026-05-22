@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.db.models import Q
-from django.views.generic import TemplateView, ListView
+from django.views.generic import TemplateView, ListView, DetailView
 
 from .forms import TransactionBaseForm, IncomeDetailForm, ExpenseDetailForm
 from .models import (
@@ -106,6 +106,53 @@ class TransactionListView(LoginRequiredMixin, ListView):
         ctx["qs_no_page"] = ("&" + params.urlencode()) if params else ""
 
         return ctx
+
+
+
+
+class TransactionDetailView(LoginRequiredMixin, DetailView):
+    model               = FinancialTransaction
+    template_name       = "transaction_detail.html"
+    context_object_name = "txn"
+
+    def get_queryset(self):
+        return (
+            FinancialTransaction.objects
+            .select_related(
+                "fund", "event",
+                "income_detail__category",
+                "expense_detail__category",
+            )
+        )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        txn = self.object
+
+        ctx["is_income"] = txn.transaction_type == "INCOME"
+
+        if ctx["is_income"]:
+            try:
+                ctx["detail"]    = txn.income_detail
+                ctx["cat_name"]  = txn.income_detail.category.name
+                ctx["person"]    = txn.income_detail.payer_name or "—"
+                ctx["person_lbl"]= "پرداخت‌کننده"
+            except Exception:
+                ctx["detail"] = ctx["cat_name"] = ctx["person"] = None
+        else:
+            try:
+                ctx["detail"]    = txn.expense_detail
+                ctx["cat_name"]  = txn.expense_detail.category.name
+                ctx["person"]    = txn.expense_detail.vendor_name or "—"
+                ctx["person_lbl"]= "تأمین‌کننده"
+            except Exception:
+                ctx["detail"] = ctx["cat_name"] = ctx["person"] = None
+
+        return ctx
+
+
+
+
 
 # ── کمکی: کتگوری → dict ──────────────────────────────────────
 def _cat_json(c):

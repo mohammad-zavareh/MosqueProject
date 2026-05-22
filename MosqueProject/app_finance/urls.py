@@ -8,6 +8,12 @@ urlpatterns = [
         "transaction/",
         views.TransactionListView.as_view(),name="transaction_list"),
 
+    path(
+        "transaction/<int:pk>/",
+        views.TransactionDetailView.as_view(),
+        name="transaction_detail",
+    ),
+
     # یک URL برای ثبت — ?tab=income (پیش‌فرض) یا ?tab=expense
     path(
         "transaction/create/",

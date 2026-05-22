@@ -1,0 +1,397 @@
+{% extends "base/main.html" %}
+{% load static %}
+
+{% block title %}
+  تراکنش #{{ txn.pk }} — {{ txn.date|date:"Y/m/d" }}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── unified detail card ── */
+.detail-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  box-shadow:var(--shadow-md);
+  overflow:hidden;
+}
+
+/* header */
+.detail-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+}
+.detail-hd-title{
+  display:flex;align-items:center;gap:8px;
+  font-size:14px;font-weight:700;color:var(--txt);
+}
+
+/* main content area */
+.detail-body{position:relative;min-height:320px}
+
+/* ── tab panes ── */
+.dpane{display:none;animation:fadeIn .18s ease}
+.dpane.on{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── image pane ── */
+.img-area{
+  min-height:320px;background:#f8fafc;
+  display:flex;align-items:center;justify-content:center;
+  cursor:zoom-in;overflow:hidden;position:relative;
+}
+.img-area img{
+  max-width:100%;max-height:420px;
+  object-fit:contain;display:block;
+}
+.img-no-receipt{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  color:var(--txt3);padding:40px 20px;text-align:center;
+}
+.img-no-receipt svg{opacity:.22}
+.img-no-receipt span{font-size:12.5px}
+
+/* ── info pane ── */
+.info-pane{padding:18px 20px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.info-cell{padding:10px 0;border-bottom:1px solid var(--border)}
+.info-cell:nth-last-child(-n+2){border-bottom:none}
+.info-cell.full{grid-column:1/-1}
+.info-lbl{font-size:11px;color:var(--txt3);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.info-val{font-size:13px;font-weight:600;color:var(--txt);line-height:1.5}
+
+/* ── bottom tab switcher ── */
+.detail-tabs{
+  display:flex;border-top:1px solid var(--border);
+  background:var(--surface2);
+}
+.d-tab{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:7px;
+  padding:11px 16px;font-size:12.5px;font-weight:600;color:var(--txt3);
+  cursor:pointer;border:none;background:none;font-family:var(--font);
+  border-bottom:2px solid transparent;
+  transition:all var(--t);
+}
+.d-tab:hover{color:var(--txt2);background:var(--surface)}
+.d-tab.active{
+  color:var(--p2);border-bottom-color:var(--p2);
+  background:var(--surface);
+}
+
+/* ── action bar (شرطی) ── */
+.detail-actions{
+  display:flex;gap:8px;padding:12px 16px;
+  border-top:1px solid var(--border);
+  flex-wrap:wrap;
+}
+
+/* ── lightbox ── */
+.lightbox{
+  display:none;position:fixed;inset:0;z-index:900;
+  background:rgba(15,23,42,.88);
+  align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.lightbox.on{display:flex;animation:lbIn .2s ease}
+@keyframes lbIn{from{opacity:0}to{opacity:1}}
+.lightbox img{
+  max-width:92vw;max-height:90vh;
+  object-fit:contain;border-radius:var(--r-sm);
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+}
+.lb-close{
+  position:fixed;top:20px;left:20px;
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,.12);border:none;
+  color:#fff;font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background var(--t);backdrop-filter:blur(4px);
+}
+.lb-close:hover{background:rgba(255,255,255,.22)}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="content">
+
+  {# ══ breadcrumb / header ══ #}
+  <div class="sec-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+         stroke="var(--p2)" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+    جزئیات تراکنش #{{ txn.pk }}
+    <span class="sec-badge">
+      {% if is_income %}درآمد{% else %}هزینه{% endif %}
+    </span>
+    <div style="margin-right:auto;display:flex;gap:8px">
+      <a href="{% url 'finance:transaction_list' %}" class="btn btn-ghost btn-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5"  y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        بازگشت به لیست
+      </a>
+    </div>
+  </div>
+
+  {# ══ DETAIL CARD ══ #}
+  <div class="row">
+    <div class="col-12 col-md-6 col-lg-5">
+      <div class="detail-card">
+
+        {# ─ header ─ #}
+        <div class="detail-hd">
+          <div class="detail-hd-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--p2)" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            تراکنش #{{ txn.pk }}
+          </div>
+          {% if is_income %}
+            <span class="badge bdg-green"><span class="dot"></span>درآمد</span>
+          {% else %}
+            <span class="badge bdg-red"><span class="dot"></span>هزینه</span>
+          {% endif %}
+        </div>
+
+        {# ─ body: دو pane ─ #}
+        <div class="detail-body">
+
+          {# pane 0: تصویر رسید #}
+          <div class="dpane on" id="pane-img">
+            <div class="img-area" id="imgArea"
+                 onclick="{% if txn.image_receipt %}openLightbox(){% endif %}">
+              {% if txn.image_receipt %}
+                <img src="{{ txn.image_receipt.url }}"
+                     alt="تصویر رسید #{{ txn.pk }}"
+                     id="receiptImg">
+              {% else %}
+                <div class="img-no-receipt">
+                  <svg width="52" height="52" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="1.2"
+                       stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  <span>رسیدی بارگذاری نشده</span>
+                  <a href="{% url 'finance:transaction_update' pk=txn.pk %}"
+                     class="btn btn-outline btn-sm" style="margin-top:4px">
+                    افزودن رسید
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {# pane 1: اطلاعات #}
+          <div class="dpane" id="pane-info">
+            <div class="info-pane">
+              <div class="info-grid">
+
+                <div class="info-cell">
+                  <div class="info-lbl">شماره مرجع</div>
+                  <div class="info-val">{{ txn.reference_number|default:"—" }}</div>
+                </div>
+
+                <div class="info-cell">
+                  <div class="info-lbl">تاریخ</div>
+                  <div class="info-val">{{ txn.date|date:"Y/m/d" }}</div>
+                </div>
+
+                <div class="info-cell">
+                  <div class="info-lbl">مبلغ</div>
+                  <div class="info-val {% if is_income %}text-success{% else %}text-danger{% endif %}">
+                    {% if is_income %}+{% else %}-{% endif %}{{ txn.amount|floatformat:0 }} تومان
+                  </div>
+                </div>
+
+                <div class="info-cell">
+                  <div class="info-lbl">صندوق</div>
+                  <div class="info-val">{{ txn.fund.name|default:"—" }}</div>
+                </div>
+
+                <div class="info-cell">
+                  <div class="info-lbl">دسته‌بندی</div>
+                  <div class="info-val">
+                    <span class="badge {% if is_income %}bdg-green{% else %}bdg-red{% endif %}">
+                      {{ cat_name|default:"—" }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="info-cell">
+                  <div class="info-lbl">{{ person_lbl|default:"طرف حساب" }}</div>
+                  <div class="info-val">{{ person|default:"—" }}</div>
+                </div>
+
+                {% if txn.event %}
+                <div class="info-cell">
+                  <div class="info-lbl">رویداد</div>
+                  <div class="info-val">{{ txn.event.name }}</div>
+                </div>
+                <div class="info-cell"></div>
+                {% endif %}
+
+                <div class="info-cell full">
+                  <div class="info-lbl">توضیحات</div>
+                  <div class="info-val" style="font-weight:400;color:var(--txt2);line-height:1.7">
+                    {{ txn.description|default:"—" }}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>{# /detail-body #}
+
+        {# ─ tab switcher (پایین کارت) ─ #}
+        <div class="detail-tabs">
+          <button class="d-tab active" id="tab-img" onclick="switchPane('img')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            تصویر رسید
+          </button>
+          <button class="d-tab" id="tab-info" onclick="switchPane('info')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8"  x2="12"    y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            اطلاعات سند
+          </button>
+        </div>
+
+        {# ─ action bar — شرطی بر اساس tab فعال ─ #}
+        <div class="detail-actions" id="actionsImg">
+          {% if txn.image_receipt %}
+            <a href="{{ txn.image_receipt.url }}" download
+               class="btn btn-primary btn-sm flex-1">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              دانلود
+            </a>
+            <button class="btn btn-ghost btn-sm flex-1" onclick="openLightbox()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              بزرگ‌نمایی
+            </button>
+          {% else %}
+            <a href="{% url 'finance:transaction_update' pk=txn.pk %}"
+               class="btn btn-outline btn-sm flex-1">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              بارگذاری رسید
+            </a>
+          {% endif %}
+        </div>
+
+        <div class="detail-actions" id="actionsInfo" style="display:none">
+          <a href="{% url 'finance:transaction_update' pk=txn.pk %}"
+             class="btn btn-outline btn-sm flex-1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/>
+            </svg>
+            ویرایش
+          </a>
+          <button class="btn btn-ghost btn-sm flex-1" onclick="window.print()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            چاپ
+          </button>
+        </div>
+
+      </div>{# /detail-card #}
+    </div>{# /col #}
+  </div>{# /row #}
+
+</div>{# /content #}
+
+
+{# ══ LIGHTBOX ══ #}
+{% if txn.image_receipt %}
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <line x1="18" y1="6"  x2="6"  y2="18"/>
+      <line x1="6"  y1="6"  x2="18" y2="18"/>
+    </svg>
+  </button>
+  <img src="{{ txn.image_receipt.url }}" alt="بزرگ‌نمایی رسید"
+       onclick="event.stopPropagation()">
+</div>
+{% endif %}
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/* ── tab switcher ── */
+function switchPane(name) {
+  ['img', 'info'].forEach(function (n) {
+    document.getElementById('pane-'    + n).classList.toggle('on',  n === name);
+    document.getElementById('tab-'     + n).classList.toggle('active', n === name);
+    document.getElementById('actions'  + n.charAt(0).toUpperCase() + n.slice(1))
+            .style.display = (n === name) ? 'flex' : 'none';
+  });
+}
+
+/* ── lightbox ── */
+function openLightbox() {
+  var lb = document.getElementById('lightbox');
+  if (lb) lb.classList.add('on');
+}
+function closeLightbox() {
+  var lb = document.getElementById('lightbox');
+  if (lb) lb.classList.remove('on');
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeLightbox();
+});
+</script>
+{% endblock %}
