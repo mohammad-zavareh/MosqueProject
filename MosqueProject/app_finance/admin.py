@@ -1,406 +1,473 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import *
+from django.db.models import Sum
+
+from .models import (
+    Fund,
+    Event,
+    IncomeCategory,
+    ExpenseCategory,
+    FinancialTransaction,
+    IncomeDetail,
+    ExpenseDetail,
+)
 
 
-class FinanceBaseAdmin(admin.ModelAdmin):
+# ══════════════════════════════════════════════════════════════
+#  BaseModelAdmin
+# ══════════════════════════════════════════════════════════════
+
+class BaseModelAdmin(admin.ModelAdmin):
 
     readonly_fields = (
-        'created_at',
-        'updated_at',
-        'created_by',
-        'updated_by',
-        'deleted_at',
-        'deleted_by',
+        "created_at", "updated_at",
+        "created_by", "updated_by",
+        "deleted_at", "deleted_by",
     )
 
-    save_on_top = True
-
-    list_per_page = 30
-
-    actions = ['soft_delete_selected']
-
-    fieldsets = (
-        ('اطلاعات سیستمی', {
-            'classes': ('collapse',),
-            'fields': (
-                'created_at',
-                'updated_at',
-                'created_by',
-                'updated_by',
-                'is_deleted',
-                'deleted_at',
-                'deleted_by',
-            )
-        }),
+    audit_fieldset = (
+        "اطلاعات سیستمی", {
+            "fields": (
+                ("created_at", "created_by"),
+                ("updated_at", "updated_by"),
+                ("is_deleted", "deleted_at", "deleted_by"),
+            ),
+            "classes": ("collapse",),
+        }
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(is_deleted=False)
 
     def save_model(self, request, obj, form, change):
-
-        if not obj.pk:
+        if not change and not obj.created_by_id:
             obj.created_by = request.user
-
         obj.updated_by = request.user
-
         super().save_model(request, obj, form, change)
 
-    @admin.action(description='حذف نرم انتخاب شده‌ها')
-    def soft_delete_selected(self, request, queryset):
-
-        for obj in queryset:
-            obj.soft_delete(user=request.user)
-
-
-@admin.register(Event)
-class EventAdmin(FinanceBaseAdmin):
-
-    list_display = (
-        'id',
-        'name',
-        'description_short',
-        'is_deleted',
-        'created_at',
-    )
-
-    search_fields = (
-        'name',
-        'description',
-    )
-
-    ordering = (
-        'name',
-    )
-
-    fieldsets = (
-        ('اطلاعات مناسبت', {
-            'fields': (
-                'name',
-                'description',
+    # ── ستون‌های مشترک ──────────────────────────────────────
+    def created_fa(self, obj):
+        if obj.created_at:
+            return format_html(
+                '<span style="font-size:12px;color:#64748b">{}</span>',
+                obj.created_at.strftime("%Y/%m/%d %H:%M"),
             )
-        }),
-    ) + FinanceBaseAdmin.fieldsets
+        return "—"
+    created_fa.short_description = "تاریخ ایجاد"
+    created_fa.admin_order_field = "created_at"
 
-    def description_short(self, obj):
+    def updated_fa(self, obj):
+        if obj.updated_at:
+            return format_html(
+                '<span style="font-size:12px;color:#64748b">{}</span>',
+                obj.updated_at.strftime("%Y/%m/%d %H:%M"),
+            )
+        return "—"
+    updated_fa.short_description = "آخرین ویرایش"
+    updated_fa.admin_order_field = "updated_at"
 
-        if obj.description:
-            return obj.description[:50]
+    def created_by_display(self, obj):
+        u = obj.created_by
+        if not u:
+            return "—"
+        return u.get_full_name() or u.username
+    created_by_display.short_description = "ایجادکننده"
 
-        return '-'
+    def updated_by_display(self, obj):
+        u = obj.updated_by
+        if not u:
+            return "—"
+        return u.get_full_name() or u.username
+    updated_by_display.short_description = "ویرایش‌کننده"
 
-    description_short.short_description = 'توضیحات'
 
-
-# =========================
-# Fund
-# =========================
+# ══════════════════════════════════════════════════════════════
+#  صندوق  (Fund)
+# ══════════════════════════════════════════════════════════════
 
 @admin.register(Fund)
-class FundAdmin(FinanceBaseAdmin):
-
+class FundAdmin(BaseModelAdmin):
     list_display = (
-        'id',
-        'name',
-        'description_short',
-        'is_deleted',
-        'created_at',
+        "name", "transaction_count",
+        "total_income", "total_expense",
+        "created_by_display", "created_fa",
     )
-
-    search_fields = (
-        'name',
-        'description',
+    search_fields = ("name", "description")
+    ordering      = ("name",)
+    readonly_fields = BaseModelAdmin.readonly_fields + (
+        "transaction_count", "total_income", "total_expense",
     )
-
-    ordering = ('name',)
-
     fieldsets = (
-        ('اطلاعات صندوق', {
-            'fields': (
-                'name',
-                'description',
-            )
+        ("اطلاعات صندوق", {
+            "fields": ("name", "description"),
         }),
-    ) + FinanceBaseAdmin.fieldsets
+        ("آمار", {
+            "fields": ("transaction_count", "total_income", "total_expense"),
+            "classes": ("collapse",),
+        }),
+        BaseModelAdmin.audit_fieldset,
+    )
 
-    def description_short(self, obj):
-        return obj.description[:50]
+    def transaction_count(self, obj):
+        return obj.transactions.filter(is_deleted=False).count()
+    transaction_count.short_description = "تعداد تراکنش"
 
-    description_short.short_description = 'توضیحات'
+    def total_income(self, obj):
+        total = (
+            obj.transactions
+            .filter(transaction_type="INCOME", is_deleted=False)
+            .aggregate(s=Sum("amount"))["s"] or 0
+        )
+        return format_html(
+            '<span style="color:#16a34a;font-weight:700">{} تومان</span>',
+            "{:,.0f}".format(total),
+        )
+    total_income.short_description = "جمع درآمد"
+
+    def total_expense(self, obj):
+        total = (
+            obj.transactions
+            .filter(transaction_type="EXPENSE", is_deleted=False)
+            .aggregate(s=Sum("amount"))["s"] or 0
+        )
+        return format_html(
+            '<span style="color:#dc2626;font-weight:700">{} تومان</span>',
+            "{:,.0f}".format(total),
+        )
+    total_expense.short_description = "جمع هزینه"
 
 
-# =========================
-# Income Category
-# =========================
+# ══════════════════════════════════════════════════════════════
+#  مناسبت  (Event)
+# ══════════════════════════════════════════════════════════════
+
+@admin.register(Event)
+class EventAdmin(BaseModelAdmin):
+    list_display  = (
+        "name", "transaction_count",
+        "created_by_display", "created_fa",
+    )
+    search_fields = ("name", "description")
+    ordering      = ("name",)
+    fieldsets = (
+        ("اطلاعات مناسبت", {
+            "fields": ("name", "description"),
+        }),
+        BaseModelAdmin.audit_fieldset,
+    )
+
+    def transaction_count(self, obj):
+        return obj.financialtransaction_set.filter(is_deleted=False).count()
+    transaction_count.short_description = "تعداد تراکنش"
+
+
+# ══════════════════════════════════════════════════════════════
+#  دسته‌بندی درآمد  (IncomeCategory)
+# ══════════════════════════════════════════════════════════════
 
 @admin.register(IncomeCategory)
-class IncomeCategoryAdmin(FinanceBaseAdmin):
-
-    list_display = (
-        'id',
-        'name',
-        'parent',
-        'children_count',
+class IncomeCategoryAdmin(BaseModelAdmin):
+    list_display  = (
+        "name", "parent", "children_count",
+        "income_count", "created_fa",
     )
-
-    search_fields = (
-        'name',
-    )
-
-    list_filter = (
-        'parent',
-    )
-
-    autocomplete_fields = (
-        'parent',
-    )
-
+    list_filter   = ("parent",)
+    search_fields = ("name",)
+    ordering      = ("parent__name", "name")
+    raw_id_fields = ("parent",)
     fieldsets = (
-        ('دسته بندی درآمد', {
-            'fields': (
-                'name',
-                'parent',
-            )
+        ("اطلاعات دسته‌بندی", {
+            "fields": ("name", "parent"),
         }),
-    ) + FinanceBaseAdmin.fieldsets
+        BaseModelAdmin.audit_fieldset,
+    )
 
     def children_count(self, obj):
-        return obj.children.count()
+        count = obj.children.filter(is_deleted=False).count()
+        return count if count else "—"
+    children_count.short_description = "زیردسته"
 
-    children_count.short_description = 'تعداد زیرمجموعه'
+    def income_count(self, obj):
+        return obj.incomes.filter(is_deleted=False).count()
+    income_count.short_description = "تعداد درآمد"
 
 
-# =========================
-# Expense Category
-# =========================
+# ══════════════════════════════════════════════════════════════
+#  دسته‌بندی هزینه  (ExpenseCategory)
+# ══════════════════════════════════════════════════════════════
 
 @admin.register(ExpenseCategory)
-class ExpenseCategoryAdmin(FinanceBaseAdmin):
-
-    list_display = (
-        'id',
-        'name',
-        'parent',
-        'children_count',
+class ExpenseCategoryAdmin(BaseModelAdmin):
+    list_display  = (
+        "name", "parent", "children_count",
+        "expense_count", "created_fa",
     )
-
-    search_fields = (
-        'name',
-    )
-
-    list_filter = (
-        'parent',
-    )
-
-    autocomplete_fields = (
-        'parent',
-    )
-
+    list_filter   = ("parent",)
+    search_fields = ("name",)
+    ordering      = ("parent__name", "name")
+    raw_id_fields = ("parent",)
     fieldsets = (
-        ('دسته بندی هزینه', {
-            'fields': (
-                'name',
-                'parent',
-            )
+        ("اطلاعات دسته‌بندی", {
+            "fields": ("name", "parent"),
         }),
-    ) + FinanceBaseAdmin.fieldsets
+        BaseModelAdmin.audit_fieldset,
+    )
 
     def children_count(self, obj):
-        return obj.children.count()
+        count = obj.children.filter(is_deleted=False).count()
+        return count if count else "—"
+    children_count.short_description = "زیردسته"
 
-    children_count.short_description = 'تعداد زیرمجموعه'
+    def expense_count(self, obj):
+        return obj.expenses.filter(is_deleted=False).count()
+    expense_count.short_description = "تعداد هزینه"
 
 
-# =========================
-# Inline Details
-# =========================
+# ══════════════════════════════════════════════════════════════
+#  Inline های Detail
+# ══════════════════════════════════════════════════════════════
 
 class IncomeDetailInline(admin.StackedInline):
+    model               = IncomeDetail
+    extra               = 0
+    max_num             = 1
+    can_delete          = False
+    verbose_name        = "جزئیات درآمد"
+    verbose_name_plural = "جزئیات درآمد"
+    fields              = ("category", "payer_name")
+    autocomplete_fields = ("category",)
+    readonly_fields     = BaseModelAdmin.readonly_fields
 
-    model = IncomeDetail
-    extra = 0
-    autocomplete_fields = ('category',)
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(is_deleted=False)
 
 
 class ExpenseDetailInline(admin.StackedInline):
+    model               = ExpenseDetail
+    extra               = 0
+    max_num             = 1
+    can_delete          = False
+    verbose_name        = "جزئیات هزینه"
+    verbose_name_plural = "جزئیات هزینه"
+    fields              = ("category", "vendor_name")
+    autocomplete_fields = ("category",)
+    readonly_fields     = BaseModelAdmin.readonly_fields
 
-    model = ExpenseDetail
-    extra = 0
-    autocomplete_fields = ('category',)
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(is_deleted=False)
 
 
-
-# =========================
-# Financial Transaction
-# =========================
+# ══════════════════════════════════════════════════════════════
+#  تراکنش مالی  (FinancialTransaction)
+# ══════════════════════════════════════════════════════════════
 
 @admin.register(FinancialTransaction)
-class FinancialTransactionAdmin(FinanceBaseAdmin):
+class FinancialTransactionAdmin(BaseModelAdmin):
 
     list_display = (
-        'id',
-        'transaction_type_badge',
-        'amount',
-        'fund',
-        'date',
-        'reference_number',
-        'is_deleted',
+        "pk", "type_badge", "amount_colored",
+        "date", "fund", "event",
+        "reference_number", "receipt_thumb",
+        "created_by_display", "created_fa",
     )
-
     list_filter = (
-        'transaction_type',
-        'fund',
-        'date',
-        'is_deleted',
+        "transaction_type",
+        "fund",
+        "event",
+        "date",
     )
-
     search_fields = (
-        'description',
-        'reference_number',
+        "reference_number",
+        "description",
+        "fund__name",
+        "event__name",
+        "income_detail__payer_name",
+        "income_detail__category__name",
+        "expense_detail__vendor_name",
+        "expense_detail__category__name",
     )
+    date_hierarchy         = "date"
+    ordering               = ("-date", "-created_at")
+    list_per_page          = 25
+    show_full_result_count = True
 
-    date_hierarchy = 'date'
-
-    autocomplete_fields = (
-        'fund',
+    readonly_fields = BaseModelAdmin.readonly_fields + (
+        "type_badge",
+        "receipt_preview",
     )
-
-    readonly_fields = FinanceBaseAdmin.readonly_fields + (
-        'amount_colored',
-    )
+    autocomplete_fields = ("fund",)
+    raw_id_fields       = ("event",)
 
     fieldsets = (
-        ('اطلاعات تراکنش', {
-            'fields': (
-                'transaction_type',
-                'amount',
-                'amount_colored',
-                'fund',
-                'date',
-                'reference_number',
-                'description',
-            )
+        ("اطلاعات اصلی", {
+            "fields": (
+                "transaction_type",
+                ("amount", "date"),
+                ("fund", "event"),
+                "reference_number",
+            ),
         }),
-    ) + FinanceBaseAdmin.fieldsets
+        ("توضیحات", {
+            "fields": ("description",),
+        }),
+        ("تصویر رسید", {
+            "fields": ("image_receipt", "receipt_preview"),
+        }),
+        BaseModelAdmin.audit_fieldset,
+    )
 
-    def get_inline_instances(self, request, obj=None):
-
-        if not obj:
+    def get_inlines(self, request, obj=None):
+        if obj is None:
             return []
+        if obj.transaction_type == "INCOME":
+            return [IncomeDetailInline]
+        if obj.transaction_type == "EXPENSE":
+            return [ExpenseDetailInline]
+        return []
 
-        inlines = []
-
-        if obj.transaction_type == 'INCOME':
-            inlines.append(IncomeDetailInline(self.model, self.admin_site))
-
-        elif obj.transaction_type == 'EXPENSE':
-            inlines.append(ExpenseDetailInline(self.model, self.admin_site))
-
-        return inlines
-
-    def transaction_type_badge(self, obj):
-
-        colors = {
-            'INCOME': 'green',
-            'EXPENSE': 'red',
-            'TRANSFER': 'blue',
-        }
-
-        return format_html(
-            '<span style="color:white;background:{};padding:4px 8px;border-radius:8px;">{}</span>',
-            colors.get(obj.transaction_type),
-            obj.get_transaction_type_display()
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request)
+            .select_related(
+                "fund", "event",
+                "created_by", "updated_by",
+                "income_detail__category",
+                "expense_detail__category",
+            )
         )
 
-    transaction_type_badge.short_description = 'نوع تراکنش'
+    # ── ستون‌های لیست ───────────────────────────────────────
+    def type_badge(self, obj):
+        if obj.transaction_type == "INCOME":
+            return format_html(
+                '<span style="background:#dcfce7;color:#15803d;padding:2px 10px;'
+                'border-radius:20px;font-size:12px;font-weight:700">{}</span>',
+                "درآمد",
+            )
+        return format_html(
+            '<span style="background:#fee2e2;color:#b91c1c;padding:2px 10px;'
+            'border-radius:20px;font-size:12px;font-weight:700">{}</span>',
+            "هزینه",
+        )
+    type_badge.short_description = "نوع"
 
     def amount_colored(self, obj):
-
-        color = 'green'
-
-        if obj.transaction_type == 'EXPENSE':
-            color = 'red'
-
+        color = "#16a34a" if obj.transaction_type == "INCOME" else "#dc2626"
+        sign  = "+"       if obj.transaction_type == "INCOME" else "-"
         return format_html(
-            '<strong style="color:{};">{:,.0f}</strong>',
+            '<span style="color:{};font-weight:700">{}{}</span>',
             color,
-            obj.amount
+            sign,
+            "{:,.0f}".format(obj.amount),
         )
+    amount_colored.short_description = "مبلغ"
+    amount_colored.admin_order_field = "amount"
 
-    amount_colored.short_description = 'مبلغ'
+    def receipt_thumb(self, obj):
+        if obj.image_receipt:
+            return format_html(
+                '<a href="{}" target="_blank">'
+                '<img src="{}" style="width:48px;height:36px;'
+                'object-fit:cover;border-radius:4px;border:1px solid #e2e8f0">'
+                '</a>',
+                obj.image_receipt.url,
+                obj.image_receipt.url,
+            )
+        return "—"
+    receipt_thumb.short_description = "رسید"
+
+    def receipt_preview(self, obj):
+        if obj.image_receipt:
+            return format_html(
+                '<a href="{}" target="_blank">'
+                '<img src="{}" style="max-width:320px;max-height:240px;'
+                'object-fit:contain;border-radius:8px;'
+                'border:1px solid #e2e8f0;margin-top:6px">'
+                '</a>',
+                obj.image_receipt.url,
+                obj.image_receipt.url,
+            )
+        return "رسیدی بارگذاری نشده"
+    receipt_preview.short_description = "پیش‌نمایش رسید"
 
 
-# =========================
-# Income Detail
-# =========================
+# ══════════════════════════════════════════════════════════════
+#  جزئیات درآمد  (IncomeDetail)
+# ══════════════════════════════════════════════════════════════
 
 @admin.register(IncomeDetail)
-class IncomeDetailAdmin(FinanceBaseAdmin):
-
-    list_display = (
-        'id',
-        'transaction',
-        'category',
-        'payer_name',
+class IncomeDetailAdmin(BaseModelAdmin):
+    list_display  = (
+        "transaction", "category", "payer_name",
+        "amount_display", "created_by_display", "created_fa",
     )
-
-    list_filter = (
-        'category',
-    )
-
+    list_filter   = ("category",)
     search_fields = (
-        'payer_name',
+        "payer_name",
+        "category__name",
+        "transaction__reference_number",
     )
-
-    autocomplete_fields = (
-        'transaction',
-        'category',
-    )
-
+    raw_id_fields       = ("transaction",)
+    autocomplete_fields = ("category",)
+    ordering            = ("-created_at",)
     fieldsets = (
-        ('جزئیات درآمد', {
-            'fields': (
-                'transaction',
-                'category',
-                'payer_name',
-            )
+        ("اطلاعات درآمد", {
+            "fields": ("transaction", "category", "payer_name"),
         }),
-    ) + FinanceBaseAdmin.fieldsets
+        BaseModelAdmin.audit_fieldset,
+    )
+
+    def amount_display(self, obj):
+        return format_html(
+            '<span style="color:#16a34a;font-weight:700">+{}</span>',
+            "{:,.0f}".format(obj.transaction.amount),
+        )
+    amount_display.short_description = "مبلغ"
+    amount_display.admin_order_field = "transaction__amount"
+
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request)
+            .select_related("transaction__fund", "category", "created_by")
+        )
 
 
-# =========================
-# Expense Detail
-# =========================
+# ══════════════════════════════════════════════════════════════
+#  جزئیات هزینه  (ExpenseDetail)
+# ══════════════════════════════════════════════════════════════
 
 @admin.register(ExpenseDetail)
-class ExpenseDetailAdmin(FinanceBaseAdmin):
-
-    list_display = (
-        'id',
-        'transaction',
-        'category',
-        'vendor_name',
+class ExpenseDetailAdmin(BaseModelAdmin):
+    list_display  = (
+        "transaction", "category", "vendor_name",
+        "amount_display", "created_by_display", "created_fa",
     )
-
-    list_filter = (
-        'category',
-    )
-
+    list_filter   = ("category",)
     search_fields = (
-        'vendor_name',
+        "vendor_name",
+        "category__name",
+        "transaction__reference_number",
     )
-
-    autocomplete_fields = (
-        'transaction',
-        'category',
-    )
-
+    raw_id_fields       = ("transaction",)
+    autocomplete_fields = ("category",)
+    ordering            = ("-created_at",)
     fieldsets = (
-        ('جزئیات هزینه', {
-            'fields': (
-                'transaction',
-                'category',
-                'vendor_name',
-            )
+        ("اطلاعات هزینه", {
+            "fields": ("transaction", "category", "vendor_name"),
         }),
-    ) + FinanceBaseAdmin.fieldsets
+        BaseModelAdmin.audit_fieldset,
+    )
 
+    def amount_display(self, obj):
+        return format_html(
+            '<span style="color:#dc2626;font-weight:700">-{}</span>',
+            "{:,.0f}".format(obj.transaction.amount),
+        )
+    amount_display.short_description = "مبلغ"
+    amount_display.admin_order_field = "transaction__amount"
 
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request)
+            .select_related("transaction__fund", "category", "created_by")
+        )
