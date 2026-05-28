@@ -7,7 +7,7 @@ from django.views import View
 from django.db.models import Q
 from django.views.generic import TemplateView, ListView, DetailView
 
-from .forms import TransactionBaseForm, IncomeDetailForm, ExpenseDetailForm
+from .forms import TransactionBaseForm, IncomeDetailForm, ExpenseDetailForm, IncomeCategoryForm, ExpenseCategoryForm
 from .models import (
     FinancialTransaction, IncomeDetail, ExpenseDetail,
     IncomeCategory, ExpenseCategory,Fund
@@ -320,3 +320,198 @@ class TransactionUpdateView(LoginRequiredMixin, TemplateView):
         ctx = _build_ctx(inc_base, inc_detail, exp_base, exp_detail,
                          active_tab=tab, instance=txn)
         return self.render_to_response(ctx)
+
+
+
+
+# ── کمکی: ساخت درخت ─────────────────────────────────────────
+def _build_tree(queryset):
+    """
+    یک queryset flat را به لیست درختی تبدیل می‌کند.
+    هر node: {"obj": instance, "children": [...], "depth": int}
+    """
+    nodes   = {obj.pk: {"obj": obj, "children": [], "depth": 0}
+               for obj in queryset}
+    roots   = []
+    for pk, node in nodes.items():
+        parent_id = node["obj"].parent_id
+        if parent_id and parent_id in nodes:
+            nodes[parent_id]["children"].append(node)
+        else:
+            roots.append(node)
+
+    def _set_depth(node, depth):
+        node["depth"] = depth
+        for child in node["children"]:
+            _set_depth(child, depth + 1)
+
+    for root in roots:
+        _set_depth(root, 0)
+
+    return roots
+
+
+def _flatten_tree(tree):
+    """درخت را به لیست مسطح عمق‌اول تبدیل می‌کند."""
+    result = []
+    def _walk(nodes):
+        for node in nodes:
+            result.append(node)
+            _walk(node["children"])
+    _walk(tree)
+    return result
+
+
+# ══════════════════════════════════════════════════════════════
+#  Mixin مشترک
+# ══════════════════════════════════════════════════════════════
+
+class _CategoryMixin:
+    """
+    kind = 'income' | 'expense'
+    """
+    kind: str = "income"
+
+    def _model(self):
+        return IncomeCategory if self.kind == "income" else ExpenseCategory
+
+    def _form_class(self):
+        return IncomeCategoryForm if self.kind == "income" else ExpenseCategoryForm
+
+    def _urls(self):
+        return {
+            "list":   f"finance:category_{self.kind}_list",
+            "create": f"finance:category_{self.kind}_create",
+            "update": f"finance:category_{self.kind}_update",
+        }
+
+    def _labels(self):
+        if self.kind == "income":
+            return {"title": "دسته‌بندی درآمد", "badge": "مالی / درآمد"}
+        return {"title": "دسته‌بندی هزینه", "badge": "مالی / هزینه"}
+
+
+# ══════════════════════════════════════════════════════════════
+#  لیست درختی
+# ══════════════════════════════════════════════════════════════
+
+class CategoryListView(LoginRequiredMixin, _CategoryMixin, TemplateView):
+    template_name = "category_list.html"
+
+    def get(self, request, *args, **kwargs):
+        qs   = (self._model().objects
+                .filter(is_deleted=False)
+                .select_related("parent")
+                .order_by("parent__name", "name"))
+        tree = _build_tree(qs)
+        flat = _flatten_tree(tree)
+        ctx  = {
+            "flat":    flat,
+            "kind":    self.kind,
+            "labels":  self._labels(),
+            "urls":    self._urls(),
+            "total":   qs.count(),
+            "roots":   sum(1 for n in flat if n["depth"] == 0),
+        }
+        return self.render_to_response(ctx)
+
+
+class IncomeCategoryListView(CategoryListView):
+    kind = "income"
+
+class ExpenseCategoryListView(CategoryListView):
+    kind = "expense"
+
+
+# ══════════════════════════════════════════════════════════════
+#  ایجاد
+# ══════════════════════════════════════════════════════════════
+
+class CategoryCreateView(LoginRequiredMixin, _CategoryMixin, TemplateView):
+    template_name = "category_form.html"
+
+    def _ctx(self, form):
+        return {
+            "form":     form,
+            "kind":     self.kind,
+            "labels":   self._labels(),
+            "urls":     self._urls(),
+            "instance": None,
+        }
+
+    def get(self, request, *args, **kwargs):
+        # اگه parent_id در query string بود، فرم رو pre-fill می‌کنیم
+        initial = {}
+        pid = request.GET.get("parent")
+        if pid:
+            initial["parent"] = pid
+        return self.render_to_response(
+            self._ctx(self._form_class()(initial=initial))
+        )
+
+    def post(self, request, *args, **kwargs):
+        form = self._form_class()(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.created_by = request.user
+            obj.updated_by = request.user
+            obj.save()
+            messages.success(request, f"دسته‌بندی «{obj.name}» با موفقیت ایجاد شد.")
+            return redirect(self._urls()["list"])
+        return self.render_to_response(self._ctx(form))
+
+
+class IncomeCategoryCreateView(CategoryCreateView):
+    kind = "income"
+
+class ExpenseCategoryCreateView(CategoryCreateView):
+    kind = "expense"
+
+
+# ══════════════════════════════════════════════════════════════
+#  ویرایش
+# ══════════════════════════════════════════════════════════════
+
+class CategoryUpdateView(LoginRequiredMixin, _CategoryMixin, TemplateView):
+    template_name = "category_form.html"
+
+    def _get_obj(self, pk):
+        return get_object_or_404(
+            self._model(), pk=pk, is_deleted=False
+        )
+
+    def _ctx(self, form, obj):
+        return {
+            "form":     form,
+            "kind":     self.kind,
+            "labels":   self._labels(),
+            "urls":     self._urls(),
+            "instance": obj,
+        }
+
+    def get(self, request, pk, *args, **kwargs):
+        obj = self._get_obj(pk)
+        return self.render_to_response(
+            self._ctx(self._form_class()(instance=obj), obj)
+        )
+
+    def post(self, request, pk, *args, **kwargs):
+        obj  = self._get_obj(pk)
+        form = self._form_class()(request.POST, instance=obj)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.updated_by = request.user
+            updated.save()
+            messages.success(
+                request, f"دسته‌بندی «{updated.name}» با موفقیت ویرایش شد."
+            )
+            return redirect(self._urls()["list"])
+        return self.render_to_response(self._ctx(form, obj))
+
+
+class IncomeCategoryUpdateView(CategoryUpdateView):
+    kind = "income"
+
+class ExpenseCategoryUpdateView(CategoryUpdateView):
+    kind = "expense"
+

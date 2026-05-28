@@ -1,0 +1,387 @@
+{% extends "base/main.html" %}
+{% load static %}
+
+{% block title %}{{ labels.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── tree ── */
+.tree-wrap{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);
+}
+.tree-row{
+  display:flex;align-items:center;gap:0;
+  border-bottom:1px solid var(--border);
+  transition:background var(--t);
+  position:relative;
+}
+.tree-row:last-child{border-bottom:none}
+.tree-row:hover{background:var(--surface2)}
+
+/* indent per depth */
+.tree-indent{
+  display:flex;align-items:center;
+  flex-shrink:0;
+}
+.tree-indent-unit{
+  width:32px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;position:relative;
+}
+/* vertical line برای indent */
+.tree-indent-unit.has-line::before{
+  content:'';position:absolute;
+  left:50%;top:0;bottom:0;width:1px;
+  background:var(--border);
+}
+/* elbow connector */
+.tree-indent-unit.connector::after{
+  content:'';position:absolute;
+  left:50%;top:50%;width:50%;height:1px;
+  background:var(--border);
+}
+
+.tree-icon{
+  width:28px;height:28px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;margin-left:8px;margin-right:4px;
+}
+.tree-icon-root  {background:var(--p-glow);color:var(--p2)}
+.tree-icon-child {background:var(--surface2);color:var(--txt3)}
+
+.tree-name{
+  flex:1;font-size:13px;font-weight:600;
+  color:var(--txt);padding:10px 0;
+}
+.tree-name-muted{color:var(--txt2);font-weight:500}
+
+.tree-meta{
+  display:flex;align-items:center;gap:8px;
+  padding:0 16px;flex-shrink:0;
+}
+.tree-children-count{
+  font-size:11.5px;color:var(--txt3);
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:20px;padding:2px 9px;
+  white-space:nowrap;
+}
+
+.tree-actions{
+  display:flex;gap:4px;padding:0 12px;
+  opacity:0;transition:opacity var(--t);flex-shrink:0;
+}
+.tree-row:hover .tree-actions{opacity:1}
+
+/* collapse toggle */
+.tree-toggle{
+  width:20px;height:20px;border-radius:4px;flex-shrink:0;
+  background:none;border:1px solid var(--border);
+  color:var(--txt3);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;transition:all var(--t);
+  margin-left:4px;
+}
+.tree-toggle:hover{background:var(--p-glow);border-color:var(--p2);color:var(--p2)}
+.tree-toggle.open{background:var(--p-glow);border-color:var(--p2);color:var(--p2)}
+
+/* empty / root badge */
+.depth-badge{
+  font-size:10px;font-weight:700;padding:1px 7px;
+  border-radius:20px;margin-right:6px;
+}
+.depth-0{background:var(--p-glow);color:var(--p2)}
+.depth-1{background:var(--blue-bg);color:var(--blue-txt)}
+.depth-2{background:var(--amber-bg);color:var(--amber-txt)}
+.depth-n{background:var(--surface2);color:var(--txt3)}
+
+/* stats bar */
+.stats-bar{
+  display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;
+}
+.stat-chip{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 14px;border-radius:var(--r-sm);
+  font-size:12.5px;font-weight:600;
+  border:1px solid transparent;
+}
+.sc-total{background:var(--surface);border-color:var(--border);color:var(--txt2)}
+.sc-root {background:var(--p-glow);border-color:rgba(26,107,74,.2);color:var(--p2)}
+
+/* empty state */
+.empty-state{
+  text-align:center;padding:56px 20px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.empty-state svg{opacity:.22;color:var(--txt3)}
+.empty-state h3{font-size:15px;font-weight:700;color:var(--txt2)}
+.empty-state p{font-size:12.5px;color:var(--txt3);line-height:1.65}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="content">
+
+  {# ══ عنوان ══ #}
+  <div class="sec-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+         stroke="var(--p2)" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <line x1="8"  y1="6"  x2="21" y2="6"/>
+      <line x1="8"  y1="12" x2="21" y2="12"/>
+      <line x1="8"  y1="18" x2="21" y2="18"/>
+      <line x1="3"  y1="6"  x2="3.01" y2="6"/>
+      <line x1="3"  y1="12" x2="3.01" y2="12"/>
+      <line x1="3"  y1="18" x2="3.01" y2="18"/>
+    </svg>
+    {{ labels.title }}
+    <span class="sec-badge">{{ total }} مورد</span>
+    <div style="margin-right:auto">
+      <a href="{% url urls.create %}"
+         class="btn btn-primary btn-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5"  x2="12" y2="19"/>
+          <line x1="5"  y1="12" x2="19" y2="12"/>
+        </svg>
+        دسته‌بندی جدید
+      </a>
+    </div>
+  </div>
+
+  {# ══ پیام‌ها ══ #}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} mb-16">
+    <span class="alert-icon">
+      {% if "success" in msg.tags %}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      {% else %}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8"  x2="12"    y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      {% endif %}
+    </span>
+    <div class="alert-body"><div class="alert-txt">{{ msg }}</div></div>
+    <button class="alert-close" onclick="this.closest('.alert').remove()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6"  x2="6"  y2="18"/>
+        <line x1="6"  y1="6"  x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  {% endfor %}
+
+  {# ══ آمار ══ #}
+  {% if flat %}
+  <div class="stats-bar">
+    <div class="stat-chip sc-total">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+      </svg>
+      {{ total }} دسته‌بندی
+    </div>
+    <div class="stat-chip sc-root">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      {{ roots }} دسته ریشه
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="expandAll()">
+      باز کردن همه
+    </button>
+    <button class="btn btn-ghost btn-sm" onclick="collapseAll()">
+      بستن همه
+    </button>
+  </div>
+  {% endif %}
+
+  {# ══ درخت دسته‌بندی ══ #}
+  {% if flat %}
+  <div class="tree-wrap" id="treeWrap">
+    {% for node in flat %}
+    <div class="tree-row"
+         data-depth="{{ node.depth }}"
+         data-id="{{ node.obj.pk }}"
+         data-parent="{{ node.obj.parent_id|default:'' }}"
+         id="node-{{ node.obj.pk }}">
+
+      {# indent ─────────────────────────────────── #}
+      <div class="tree-indent">
+        {% for i in "x"|ljust:node.depth %}
+          <div class="tree-indent-unit {% if not forloop.last %}has-line{% else %}connector{% endif %}"></div>
+        {% endfor %}
+      </div>
+
+      {# collapse toggle (فقط برای والدین) ───────── #}
+      {% if node.children %}
+        <button class="tree-toggle open"
+                data-target="{{ node.obj.pk }}"
+                onclick="toggleNode(this, {{ node.obj.pk }})">−</button>
+      {% else %}
+        <div style="width:24px;margin-left:4px"></div>
+      {% endif %}
+
+      {# آیکون ─────────────────────────────────────── #}
+      <div class="tree-icon {% if node.depth == 0 %}tree-icon-root{% else %}tree-icon-child{% endif %}">
+        {% if node.depth == 0 %}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        {% else %}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+          </svg>
+        {% endif %}
+      </div>
+
+      {# نام ───────────────────────────────────────── #}
+      <div class="tree-name {% if node.depth > 0 %}tree-name-muted{% endif %}">
+        {# badge عمق #}
+        {% if node.depth == 0 %}
+          <span class="depth-badge depth-0">ریشه</span>
+        {% elif node.depth == 1 %}
+          <span class="depth-badge depth-1">سطح ۱</span>
+        {% elif node.depth == 2 %}
+          <span class="depth-badge depth-2">سطح ۲</span>
+        {% else %}
+          <span class="depth-badge depth-n">سطح {{ node.depth }}</span>
+        {% endif %}
+        {{ node.obj.name }}
+      </div>
+
+      {# تعداد فرزند ─────────────────────────────── #}
+      <div class="tree-meta">
+        {% if node.children %}
+          <span class="tree-children-count">
+            {{ node.children|length }} زیردسته
+          </span>
+        {% endif %}
+      </div>
+
+      {# دکمه‌های عملیات ────────────────────────── #}
+      <div class="tree-actions">
+        {# افزودن زیردسته #}
+        <a href="{% url urls.create %}?parent={{ node.obj.pk }}"
+           class="btn btn-ghost btn-sq"
+           title="افزودن زیردسته">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5"  x2="12" y2="19"/>
+            <line x1="5"  y1="12" x2="19" y2="12"/>
+          </svg>
+        </a>
+        {# ویرایش #}
+        <a href="{% url urls.update pk=node.obj.pk %}"
+           class="btn btn-ghost btn-sq"
+           title="ویرایش">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/>
+          </svg>
+        </a>
+      </div>
+
+    </div>{# /tree-row #}
+    {% endfor %}
+  </div>
+
+  {% else %}
+  {# ══ empty state ══ #}
+  <div class="tree-wrap">
+    <div class="empty-state">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+      </svg>
+      <h3>هنوز دسته‌بندی‌ای ثبت نشده</h3>
+      <p>اولین دسته‌بندی {{ labels.title }} را ایجاد کنید.</p>
+      <a href="{% url urls.create %}" class="btn btn-primary btn-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5"  x2="12" y2="19"/>
+          <line x1="5"  y1="12" x2="19" y2="12"/>
+        </svg>
+        ایجاد دسته‌بندی
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/* ── collapse/expand ── */
+function getDescendants(parentId) {
+  var result = [];
+  document.querySelectorAll('.tree-row').forEach(function (row) {
+    if (row.dataset.parent == parentId) {
+      result.push(row);
+      getDescendants(row.dataset.id).forEach(function (d) { result.push(d); });
+    }
+  });
+  return result;
+}
+
+function toggleNode(btn, nodeId) {
+  var open = btn.classList.contains('open');
+  var descendants = getDescendants(nodeId);
+  if (open) {
+    descendants.forEach(function (row) { row.style.display = 'none'; });
+    btn.classList.remove('open');
+    btn.textContent = '+';
+  } else {
+    // فقط فرزندان مستقیم رو نشون می‌دیم، نه تمام زیرشاخه‌های بسته
+    document.querySelectorAll('.tree-row[data-parent="' + nodeId + '"]')
+      .forEach(function (row) { row.style.display = ''; });
+    btn.classList.add('open');
+    btn.textContent = '−';
+  }
+}
+
+function expandAll() {
+  document.querySelectorAll('.tree-row').forEach(function (r) {
+    r.style.display = '';
+  });
+  document.querySelectorAll('.tree-toggle').forEach(function (b) {
+    b.classList.add('open');
+    b.textContent = '−';
+  });
+}
+
+function collapseAll() {
+  document.querySelectorAll('.tree-row[data-depth="0"]').forEach(function (r) {
+    r.style.display = '';
+  });
+  document.querySelectorAll('.tree-row:not([data-depth="0"])').forEach(function (r) {
+    r.style.display = 'none';
+  });
+  document.querySelectorAll('.tree-toggle').forEach(function (b) {
+    b.classList.remove('open');
+    b.textContent = '+';
+  });
+}
+</script>
+{% endblock %}

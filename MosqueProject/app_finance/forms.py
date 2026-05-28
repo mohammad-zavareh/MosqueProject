@@ -95,3 +95,86 @@ class ExpenseDetailForm(forms.ModelForm):
             }),
         }
         labels  = {"vendor_name": "نام تأمین‌کننده"}
+
+
+
+
+
+_INPUT  = {"class": "form-ctrl"}
+_SELECT = {"class": "form-ctrl"}
+
+
+class IncomeCategoryForm(forms.ModelForm):
+    class Meta:
+        model  = IncomeCategory
+        fields = ["name", "parent"]
+        widgets = {
+            "name":   forms.TextInput(attrs={**_INPUT,
+                          "placeholder": "نام دسته‌بندی درآمد"}),
+            "parent": forms.Select(attrs=_SELECT),
+        }
+        labels = {
+            "name":   "نام دسته‌بندی",
+            "parent": "دسته‌بندی والد",
+        }
+        error_messages = {
+            "name": {"required": "نام دسته‌بندی الزامی است."},
+        }
+
+    def __init__(self, *args, **kwargs):
+        # instance موجود را از parent choices حذف می‌کنیم
+        # تا دسته نتواند والد خودش باشد
+        instance = kwargs.get("instance")
+        super().__init__(*args, **kwargs)
+        self.fields["parent"].required    = False
+        self.fields["parent"].empty_label = "— بدون والد (ریشه) —"
+        qs = IncomeCategory.objects.filter(is_deleted=False)
+        if instance and instance.pk:
+            # خود دسته و تمام فرزندانش را حذف می‌کنیم
+            exclude_ids = self._get_subtree_ids(instance)
+            qs = qs.exclude(pk__in=exclude_ids)
+        self.fields["parent"].queryset = qs.order_by("name")
+
+    @staticmethod
+    def _get_subtree_ids(node):
+        """pk تمام زیردرخت یک نود را برمی‌گرداند."""
+        ids = [node.pk]
+        for child in node.children.filter(is_deleted=False):
+            ids.extend(IncomeCategoryForm._get_subtree_ids(child))
+        return ids
+
+
+class ExpenseCategoryForm(forms.ModelForm):
+    class Meta:
+        model  = ExpenseCategory
+        fields = ["name", "parent"]
+        widgets = {
+            "name":   forms.TextInput(attrs={**_INPUT,
+                          "placeholder": "نام دسته‌بندی هزینه"}),
+            "parent": forms.Select(attrs=_SELECT),
+        }
+        labels = {
+            "name":   "نام دسته‌بندی",
+            "parent": "دسته‌بندی والد",
+        }
+        error_messages = {
+            "name": {"required": "نام دسته‌بندی الزامی است."},
+        }
+
+    def __init__(self, *args, **kwargs):
+        instance = kwargs.get("instance")
+        super().__init__(*args, **kwargs)
+        self.fields["parent"].required    = False
+        self.fields["parent"].empty_label = "— بدون والد (ریشه) —"
+        qs = ExpenseCategory.objects.filter(is_deleted=False)
+        if instance and instance.pk:
+            exclude_ids = self._get_subtree_ids(instance)
+            qs = qs.exclude(pk__in=exclude_ids)
+        self.fields["parent"].queryset = qs.order_by("name")
+
+    @staticmethod
+    def _get_subtree_ids(node):
+        ids = [node.pk]
+        for child in node.children.filter(is_deleted=False):
+            ids.extend(ExpenseCategoryForm._get_subtree_ids(child))
+        return ids

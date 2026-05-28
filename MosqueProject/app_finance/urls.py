@@ -33,6 +33,38 @@ urlpatterns = [
         views.CategoryChildrenView.as_view(),
         name="ajax_categories",
     ),
+    path(
+        "category/income/",
+        views.IncomeCategoryListView.as_view(),
+        name="category_income_list",
+    ),
+    path(
+        "category/income/create/",
+        views.IncomeCategoryCreateView.as_view(),
+        name="category_income_create",
+    ),
+    path(
+        "category/income/<int:pk>/edit/",
+        views.IncomeCategoryUpdateView.as_view(),
+        name="category_income_update",
+    ),
+
+    # ── هزینه ────────────────────────────────────────────────
+    path(
+        "category/expense/",
+        views.ExpenseCategoryListView.as_view(),
+        name="category_expense_list",
+    ),
+    path(
+        "category/expense/create/",
+        views.ExpenseCategoryCreateView.as_view(),
+        name="category_expense_create",
+    ),
+    path(
+        "category/expense/<int:pk>/edit/",
+        views.ExpenseCategoryUpdateView.as_view(),
+        name="category_expense_update",
+    ),
 ]
 
 # نمونه لینک‌دهی در تمپلیت:
