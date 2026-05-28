@@ -65,6 +65,16 @@ urlpatterns = [
         views.ExpenseCategoryUpdateView.as_view(),
         name="category_expense_update",
     ),
+
+    # ── صندوق ────────────────────────────────────────────
+    path("fund/",views.FundListView.as_view(), name="fund_list"),
+    path("fund/create/",views.FundCreateView.as_view(), name="fund_create"),
+    path("fund/<int:pk>/edit/",views.FundUpdateView.as_view(), name="fund_update"),
+
+    # ── مناسبت ───────────────────────────────────────────
+    path("event/",views.EventListView.as_view(), name="event_list"),
+    path("event/create/",views.EventCreateView.as_view(), name="event_create"),
+    path("event/<int:pk>/edit/",views.EventUpdateView.as_view(), name="event_update"),
 ]
 
 # نمونه لینک‌دهی در تمپلیت:

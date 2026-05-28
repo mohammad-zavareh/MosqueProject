@@ -178,3 +178,47 @@ class ExpenseCategoryForm(forms.ModelForm):
         for child in node.children.filter(is_deleted=False):
             ids.extend(ExpenseCategoryForm._get_subtree_ids(child))
         return ids
+
+
+
+_TEXTAREA = {"class": "form-ctrl", "rows": "3"}
+
+
+class FundForm(forms.ModelForm):
+    class Meta:
+        model  = Fund
+        fields = ["name", "description"]
+        widgets = {
+            "name":        forms.TextInput(attrs={
+                               **_INPUT,
+                               "placeholder": "نام صندوق را وارد کنید",
+                           }),
+            "description": forms.Textarea(attrs={
+                               **_TEXTAREA,
+                               "placeholder": "توضیحات (اختیاری)...",
+                           }),
+        }
+        labels = {"name": "نام صندوق", "description": "توضیحات"}
+        error_messages = {
+            "name": {"required": "نام صندوق الزامی است."}
+        }
+
+
+class EventForm(forms.ModelForm):
+    class Meta:
+        model  = Event
+        fields = ["name", "description"]
+        widgets = {
+            "name":        forms.TextInput(attrs={
+                               **_INPUT,
+                               "placeholder": "نام مناسبت را وارد کنید",
+                           }),
+            "description": forms.Textarea(attrs={
+                               **_TEXTAREA,
+                               "placeholder": "توضیحات (اختیاری)...",
+                           }),
+        }
+        labels = {"name": "نام مناسبت", "description": "توضیحات"}
+        error_messages = {
+            "name": {"required": "نام مناسبت الزامی است."}
+        }

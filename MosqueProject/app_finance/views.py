@@ -4,13 +4,13 @@ from django.db import transaction as db_transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
-from django.db.models import Q
+from django.db.models import Count, Sum, Q
 from django.views.generic import TemplateView, ListView, DetailView
 
-from .forms import TransactionBaseForm, IncomeDetailForm, ExpenseDetailForm, IncomeCategoryForm, ExpenseCategoryForm
+from .forms import TransactionBaseForm, IncomeDetailForm, ExpenseDetailForm, IncomeCategoryForm, ExpenseCategoryForm, EventForm, FundForm
 from .models import (
     FinancialTransaction, IncomeDetail, ExpenseDetail,
-    IncomeCategory, ExpenseCategory,Fund
+    IncomeCategory, ExpenseCategory,Fund, Event
 )
 
 class TransactionListView(LoginRequiredMixin, ListView):
@@ -514,4 +514,176 @@ class IncomeCategoryUpdateView(CategoryUpdateView):
 
 class ExpenseCategoryUpdateView(CategoryUpdateView):
     kind = "expense"
+
+
+
+
+class _ItemMixin:
+    """mixin مشترک برای Fund و Event"""
+    kind: str = "fund"   # "fund" | "event"
+
+    def _model(self):
+        return Fund if self.kind == "fund" else Event
+
+    def _form_class(self):
+        return FundForm if self.kind == "fund" else EventForm
+
+    def _labels(self):
+        if self.kind == "fund":
+            return {
+                "title":      "صندوق‌ها",
+                "title_sing": "صندوق",
+                "badge":      "مالی / صندوق",
+                "new":        "صندوق جدید",
+                "icon":       "fund",
+            }
+        return {
+            "title":      "مناسبت‌ها",
+            "title_sing": "مناسبت",
+            "badge":      "مالی / مناسبت",
+            "new":        "مناسبت جدید",
+            "icon":       "event",
+        }
+
+    def _urls(self):
+        return {
+            "list":   f"finance:{self.kind}_list",
+            "create": f"finance:{self.kind}_create",
+            "update": f"finance:{self.kind}_update",
+        }
+
+
+# ── لیست ─────────────────────────────────────────────────────
+class ItemListView(LoginRequiredMixin, _ItemMixin, TemplateView):
+    template_name = "item_list.html"
+
+    def get(self, request, *args, **kwargs):
+        q    = request.GET.get("q", "").strip()
+        qs   = self._model().objects.filter(is_deleted=False)
+
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q) | Q(description__icontains=q)
+            )
+
+        # آمار تراکنش برای هر آیتم
+        if self.kind == "fund":
+            qs = qs.annotate(
+                txn_count   = Count("transactions",
+                                    filter=Q(transactions__is_deleted=False)),
+                total_income= Sum("transactions__amount",
+                                  filter=Q(transactions__transaction_type="INCOME",
+                                           transactions__is_deleted=False)),
+                total_expense=Sum("transactions__amount",
+                                  filter=Q(transactions__transaction_type="EXPENSE",
+                                           transactions__is_deleted=False)),
+            )
+        else:
+            qs = qs.annotate(
+                txn_count=Count("financialtransaction",
+                                filter=Q(financialtransaction__is_deleted=False)),
+            )
+
+        qs = qs.order_by("name")
+
+        ctx = {
+            "items":   qs,
+            "kind":    self.kind,
+            "labels":  self._labels(),
+            "urls":    self._urls(),
+            "q":       q,
+            "total":   qs.count(),
+        }
+        return self.render_to_response(ctx)
+
+
+class FundListView(ItemListView):
+    kind = "fund"
+
+class EventListView(ItemListView):
+    kind = "event"
+
+
+# ── ایجاد ─────────────────────────────────────────────────────
+class ItemCreateView(LoginRequiredMixin, _ItemMixin, TemplateView):
+    template_name = "item_form.html"
+
+    def _ctx(self, form):
+        return {
+            "form":     form,
+            "kind":     self.kind,
+            "labels":   self._labels(),
+            "urls":     self._urls(),
+            "instance": None,
+        }
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response(self._ctx(self._form_class()()))
+
+    def post(self, request, *args, **kwargs):
+        form = self._form_class()(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.created_by = request.user
+            obj.updated_by = request.user
+            obj.save()
+            messages.success(
+                request,
+                f"{self._labels()['title_sing']} «{obj.name}» با موفقیت ایجاد شد.",
+            )
+            return redirect(self._urls()["list"])
+        return self.render_to_response(self._ctx(form))
+
+
+class FundCreateView(ItemCreateView):
+    kind = "fund"
+
+class EventCreateView(ItemCreateView):
+    kind = "event"
+
+
+# ── ویرایش ────────────────────────────────────────────────────
+class ItemUpdateView(LoginRequiredMixin, _ItemMixin, TemplateView):
+    template_name = "item_form.html"
+
+    def _get_obj(self, pk):
+        return get_object_or_404(self._model(), pk=pk, is_deleted=False)
+
+    def _ctx(self, form, obj):
+        return {
+            "form":     form,
+            "kind":     self.kind,
+            "labels":   self._labels(),
+            "urls":     self._urls(),
+            "instance": obj,
+        }
+
+    def get(self, request, pk, *args, **kwargs):
+        obj = self._get_obj(pk)
+        return self.render_to_response(
+            self._ctx(self._form_class()(instance=obj), obj)
+        )
+
+    def post(self, request, pk, *args, **kwargs):
+        obj  = self._get_obj(pk)
+        form = self._form_class()(request.POST, instance=obj)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.updated_by = request.user
+            updated.save()
+            messages.success(
+                request,
+                f"{self._labels()['title_sing']} «{updated.name}» با موفقیت ویرایش شد.",
+            )
+            return redirect(self._urls()["list"])
+        return self.render_to_response(self._ctx(form, obj))
+
+
+class FundUpdateView(ItemUpdateView):
+    kind = "fund"
+
+class EventUpdateView(ItemUpdateView):
+    kind = "event"
+
+
 
