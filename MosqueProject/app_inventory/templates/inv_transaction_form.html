@@ -1,0 +1,323 @@
+{% extends "base/main.html" %}
+{% load static %}
+
+{% block title %}
+  {% if instance %}ویرایش تراکنش #{{ instance.pk }}{% else %}تراکنش انبار جدید{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.field-err{
+  display:flex;align-items:center;gap:5px;
+  font-size:11.5px;color:var(--red);margin-top:5px;
+}
+.field-err::before{
+  content:'';width:4px;height:4px;border-radius:50%;
+  background:var(--red);flex-shrink:0;
+}
+.has-err .form-ctrl{border-color:var(--red)!important}
+.has-err .form-ctrl:focus{box-shadow:0 0 0 3px rgba(220,38,38,.1)!important}
+
+/* کارت مجموع */
+.total-card{
+  background:var(--p-glow);border:1px solid rgba(26,107,74,.2);
+  border-radius:var(--r);padding:16px 18px;margin-top:4px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.total-lbl{font-size:12px;font-weight:600;color:var(--p2)}
+.total-val{font-size:20px;font-weight:800;color:var(--p2)}
+
+/* info chip کالا */
+.item-info{
+  display:none;
+  align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px 12px;margin-top:6px;
+  background:var(--blue-bg);border:1px solid rgba(37,99,235,.15);
+  border-radius:var(--r-sm);font-size:12px;
+}
+.item-info.show{display:flex}
+.ii-chip{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.7);border-radius:20px;
+  padding:2px 9px;font-weight:600;color:var(--blue-txt);
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="content">
+
+  {# ══ عنوان ══ #}
+  <div class="sec-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+         stroke="var(--p2)" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+      <line x1="12" y1="22.08" x2="12" y2="12"/>
+    </svg>
+    {% if instance %}ویرایش تراکنش #{{ instance.pk }}{% else %}تراکنش انبار جدید{% endif %}
+    <span class="sec-badge">انبار</span>
+    <div style="margin-right:auto">
+      <a href="{% url 'inventory:transaction_list' %}" class="btn btn-ghost btn-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5"  y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        بازگشت به لیست
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12 col-md-8 col-lg-7">
+      <div class="card">
+        <form method="post" novalidate id="txnForm">
+          {% csrf_token %}
+
+          {# ── ROW 1: کالا + نوع تراکنش ── #}
+          <div class="row">
+            <div class="col-12 col-md-6">
+              <div class="form-group {% if form.item.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.item.id_for_label }}">
+                  <span class="req">* </span>{{ form.item.label }}
+                </label>
+                {{ form.item }}
+                {# اطلاعات سریع کالا #}
+                <div class="item-info" id="itemInfo">
+                  <span class="ii-chip" id="infoUnit">—</span>
+                  <span class="ii-chip" id="infoStock">موجودی: —</span>
+                  <span class="ii-chip" id="infoPrice">قیمت پیش‌فرض: —</span>
+                </div>
+                {% for e in form.item.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="form-group {% if form.transaction_type.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.transaction_type.id_for_label }}">
+                  <span class="req">* </span>{{ form.transaction_type.label }}
+                </label>
+                {{ form.transaction_type }}
+                {% for e in form.transaction_type.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# ── ROW 2: مقدار + قیمت واحد + تاریخ ── #}
+          <div class="row">
+            <div class="col-12 col-md-4">
+              <div class="form-group {% if form.quantity.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.quantity.id_for_label }}">
+                  <span class="req">* </span>{{ form.quantity.label }}
+                </label>
+                {{ form.quantity }}
+                {% for e in form.quantity.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-group {% if form.unit_price.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.unit_price.id_for_label }}">
+                  {{ form.unit_price.label }}
+                </label>
+                {{ form.unit_price }}
+                {% for e in form.unit_price.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-group {% if form.date.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.date.id_for_label }}">
+                  <span class="req">* </span>{{ form.date.label }}
+                </label>
+                {{ form.date }}
+                {% for e in form.date.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# ── مجموع زنده ── #}
+          <div class="total-card">
+            <span class="total-lbl">مبلغ کل (محاسبه خودکار)</span>
+            <span class="total-val" id="totalDisplay">—</span>
+          </div>
+
+          {# ── ROW 3: سند هزینه ── #}
+          <div class="row" style="margin-top:16px">
+            <div class="col-12">
+              <div class="form-group {% if form.expense.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.expense.id_for_label }}">
+                  {{ form.expense.label }}
+                </label>
+                {{ form.expense }}
+                <div class="fs-11 text-muted" style="margin-top:4px">
+                  اختیاری — برای لینک کردن به سند هزینه مالی
+                </div>
+                {% for e in form.expense.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# ── ROW 4: یادداشت ── #}
+          <div class="row">
+            <div class="col-12">
+              <div class="form-group {% if form.notes.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                {{ form.notes }}
+                {% for e in form.notes.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# ── دکمه‌ها ── #}
+          <div class="sep"></div>
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              {% if instance %}ذخیره تغییرات{% else %}ثبت تراکنش{% endif %}
+            </button>
+            <a href="{% url 'inventory:transaction_list' %}" class="btn btn-ghost">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5"  y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+              انصراف
+            </a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    {# ── راهنما ── #}
+    <div class="col-12 col-md-4 col-lg-3">
+      <div class="card" style="background:var(--surface2)">
+        <div class="sec-title" style="margin-bottom:12px;font-size:13px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="var(--p2)" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8"  x2="12"    y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          راهنمای نوع تراکنش
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:12.5px;color:var(--txt2);line-height:1.7">
+          <div>
+            <span class="badge" style="background:#dcfce7;color:#15803d;margin-left:6px">خرید</span>
+            موجودی را افزایش می‌دهد.
+          </div>
+          <div>
+            <span class="badge" style="background:#fef9c3;color:#854d0e;margin-left:6px">مصرف</span>
+            موجودی را کاهش می‌دهد.
+          </div>
+          <div>
+            <span class="badge" style="background:#eff6ff;color:#1e40af;margin-left:6px">اصلاح</span>
+            موجودی را به مقدار وارد‌شده تنظیم می‌کند.
+          </div>
+        </div>
+      </div>
+
+      {% if instance %}
+      <div class="card" style="background:var(--surface2);margin-top:0">
+        <div class="sec-title" style="margin-bottom:12px;font-size:13px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="var(--p2)" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8"  x2="12"    y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          اطلاعات سیستمی
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div>
+            <div class="fs-11 text-muted mb-8">تاریخ ثبت</div>
+            <div class="fw-600 fs-12">{{ instance.created_at|date:"Y/m/d H:i" }}</div>
+          </div>
+          {% if instance.created_by %}
+          <div>
+            <div class="fs-11 text-muted mb-8">ثبت‌کننده</div>
+            <div class="fw-600 fs-12">
+              {{ instance.created_by.get_full_name|default:instance.created_by.username }}
+            </div>
+          </div>
+          {% endif %}
+          <div>
+            <div class="fs-11 text-muted mb-8">مبلغ کل ثبت‌شده</div>
+            <div class="fw-700 text-success">{{ instance.total_price|floatformat:0 }} تومان</div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/* اطلاعات کالاها از view */
+var ITEMS = {{ items_json|safe }};
+
+var itemSel   = document.getElementById('id_item');
+var qtyInput  = document.getElementById('id_quantity');
+var priceInput= document.getElementById('id_unit_price');
+var totalDisp = document.getElementById('totalDisplay');
+var itemInfo  = document.getElementById('itemInfo');
+var infoUnit  = document.getElementById('infoUnit');
+var infoStock = document.getElementById('infoStock');
+var infoPrice = document.getElementById('infoPrice');
+
+/* آپدیت اطلاعات کالا */
+function updateItemInfo() {
+  var id   = itemSel.value;
+  var data = ITEMS[id];
+  if (!data) {
+    itemInfo.classList.remove('show');
+    return;
+  }
+  infoUnit.textContent  = 'واحد: ' + data.unit;
+  infoStock.textContent = 'موجودی: ' + parseFloat(data.current_stock).toLocaleString();
+  infoPrice.textContent = 'قیمت پیش‌فرض: ' + parseFloat(data.purchase_price).toLocaleString();
+  itemInfo.classList.add('show');
+
+  /* autofill قیمت واحد فقط اگه خالی باشه */
+  if (!priceInput.value && data.purchase_price && parseFloat(data.purchase_price) > 0) {
+    priceInput.value = data.purchase_price;
+    calcTotal();
+  }
+}
+
+/* محاسبه مجموع */
+function calcTotal() {
+  var qty   = parseFloat(qtyInput.value)   || 0;
+  var price = parseFloat(priceInput.value) || 0;
+  var total = qty * price;
+  if (total > 0) {
+    totalDisp.textContent = total.toLocaleString('fa-IR') + ' تومان';
+  } else {
+    totalDisp.textContent = '—';
+  }
+}
+
+itemSel.addEventListener('change',   updateItemInfo);
+qtyInput.addEventListener('input',   calcTotal);
+priceInput.addEventListener('input', calcTotal);
+
+/* مقدار اولیه در ویرایش */
+updateItemInfo();
+calcTotal();
+</script>
+{% endblock %}

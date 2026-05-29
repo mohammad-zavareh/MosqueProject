@@ -1,0 +1,90 @@
+from django import forms
+from .models import InventoryTransaction, InventoryItem, InventoryCategory, Supplier
+from app_finance.models import ExpenseDetail
+
+_INPUT    = {"class": "form-ctrl"}
+_SELECT   = {"class": "form-ctrl"}
+_TEXTAREA = {"class": "form-ctrl", "rows": "3"}
+_NUMBER   = {"class": "form-ctrl", "type": "number", "min": "0", "step": "0.01"}
+_DATE     = {"class": "form-ctrl", "type": "date"}
+
+
+class InventoryTransactionForm(forms.ModelForm):
+
+    class Meta:
+        model  = InventoryTransaction
+        fields = [
+            "item", "transaction_type", "quantity",
+            "unit_price", "date", "expense", "notes",
+        ]
+        widgets = {
+            "item":             forms.Select(attrs={**_SELECT, "id": "id_item"}),
+            "transaction_type": forms.Select(attrs={**_SELECT, "id": "id_transaction_type"}),
+            "quantity":         forms.NumberInput(attrs={
+                                    **_NUMBER,
+                                    "placeholder": "مقدار",
+                                    "id": "id_quantity",
+                                }),
+            "unit_price":       forms.NumberInput(attrs={
+                                    **_NUMBER,
+                                    "placeholder": "قیمت واحد",
+                                    "id": "id_unit_price",
+                                }),
+            "date":             forms.DateInput(attrs={**_DATE, "id": "id_date"}),
+            "expense":          forms.Select(attrs={**_SELECT, "id": "id_expense"}),
+            "notes":            forms.Textarea(attrs={
+                                    **_TEXTAREA,
+                                    "placeholder": "یادداشت (اختیاری)...",
+                                    "id": "id_notes",
+                                }),
+        }
+        labels = {
+            "item":             "کالا",
+            "transaction_type": "نوع تراکنش",
+            "quantity":         "مقدار",
+            "unit_price":       "قیمت واحد (تومان)",
+            "date":             "تاریخ",
+            "expense":          "سند هزینه مرتبط",
+            "notes":            "یادداشت",
+        }
+        error_messages = {
+            "item":             {"required": "انتخاب کالا الزامی است."},
+            "transaction_type": {"required": "نوع تراکنش الزامی است."},
+            "quantity":         {"required": "مقدار الزامی است."},
+            "date":             {"required": "تاریخ الزامی است."},
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["item"].queryset = (
+            InventoryItem.objects
+            .filter(is_deleted=False)
+            .select_related("category")
+            .order_by("category__name", "name")
+        )
+        self.fields["item"].empty_label = "— انتخاب کالا —"
+
+        expense_qs = (
+            ExpenseDetail.objects
+            .filter(is_deleted=False)
+            .select_related("transaction", "category")
+            .order_by("-transaction__date")
+        )
+        self.fields["expense"].queryset    = expense_qs
+        self.fields["expense"].empty_label = "— بدون سند هزینه —"
+        self.fields["expense"].required    = False
+
+        # نمایش شماره مرجع در dropdown
+        self.fields["expense"].label_from_instance = self._expense_label
+
+    @staticmethod
+    def _expense_label(obj):
+        txn = obj.transaction
+        ref = txn.reference_number or f"#{txn.pk}"
+        date = txn.date.strftime("%Y/%m/%d") if txn.date else "—"
+        amount = f"{txn.amount:,.0f}"
+        cat = obj.category.name if obj.category_id else "—"
+        return f"{ref}  |  {date}  |  {amount} تومان  |  {cat}"
+
+        # total_price فقط نمایشی است و در save() محاسبه می‌شود
