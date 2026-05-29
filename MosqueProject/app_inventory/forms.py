@@ -88,3 +88,64 @@ class InventoryTransactionForm(forms.ModelForm):
         return f"{ref}  |  {date}  |  {amount} تومان  |  {cat}"
 
         # total_price فقط نمایشی است و در save() محاسبه می‌شود
+
+
+
+
+
+class InventoryItemForm(forms.ModelForm):
+    class Meta:
+        model  = InventoryItem
+        fields = [
+            "name", "category", "unit",
+            "purchase_price", "current_stock", "supplier",
+        ]
+        widgets = {
+            "name":           forms.TextInput(attrs={
+                                  **_INPUT,
+                                  "placeholder": "نام کالا",
+                              }),
+            "category":       forms.Select(attrs=_SELECT),
+            "unit":           forms.TextInput(attrs={
+                                  **_INPUT,
+                                  "placeholder": "مثال: عدد، کیلوگرم، متر",
+                              }),
+            "purchase_price": forms.NumberInput(attrs={
+                                  **_NUMBER,
+                                  "placeholder": "قیمت خرید",
+                              }),
+            "current_stock":  forms.NumberInput(attrs={
+                                  **_NUMBER,
+                                  "placeholder": "موجودی اولیه",
+                              }),
+            "supplier":       forms.Select(attrs=_SELECT),
+        }
+        labels = {
+            "name":           "نام کالا",
+            "category":       "دسته‌بندی",
+            "unit":           "واحد",
+            "purchase_price": "قیمت خرید (تومان)",
+            "current_stock":  "موجودی اولیه",
+            "supplier":       "تأمین‌کننده",
+        }
+        error_messages = {
+            "name":     {"required": "نام کالا الزامی است."},
+            "category": {"required": "انتخاب دسته‌بندی الزامی است."},
+            "unit":     {"required": "واحد الزامی است."},
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].queryset = (
+            InventoryCategory.objects
+            .filter(is_deleted=False)
+            .order_by("name")
+        )
+        self.fields["category"].empty_label = "— انتخاب دسته‌بندی —"
+        self.fields["supplier"].queryset = (
+            Supplier.objects
+            .filter(is_deleted=False)
+            .order_by("name")
+        )
+        self.fields["supplier"].empty_label = "— بدون تأمین‌کننده —"
+        self.fields["supplier"].required    = False

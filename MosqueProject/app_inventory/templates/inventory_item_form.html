@@ -1,0 +1,263 @@
+{% extends "base/main.html" %}
+{% load static %}
+
+{% block title %}
+  {% if instance %}ویرایش کالا «{{ instance.name }}»{% else %}کالای جدید{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.field-err{
+  display:flex;align-items:center;gap:5px;
+  font-size:11.5px;color:var(--red);margin-top:5px;
+}
+.field-err::before{
+  content:'';width:4px;height:4px;border-radius:50%;
+  background:var(--red);flex-shrink:0;
+}
+.has-err .form-ctrl{border-color:var(--red)!important}
+.has-err .form-ctrl:focus{box-shadow:0 0 0 3px rgba(220,38,38,.1)!important}
+
+.stock-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:var(--r-sm);
+  font-size:13px;font-weight:700;margin-top:6px;
+}
+.sb-ok   {background:var(--green-bg);color:var(--green-txt);border:1px solid rgba(22,163,74,.2)}
+.sb-low  {background:var(--amber-bg);color:var(--amber-txt);border:1px solid rgba(217,119,6,.2)}
+.sb-zero {background:var(--red-bg);color:var(--red-txt);border:1px solid rgba(220,38,38,.2)}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="content">
+
+  {# ══ عنوان ══ #}
+  <div class="sec-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+         stroke="var(--p2)" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+      <line x1="12" y1="22.08" x2="12" y2="12"/>
+    </svg>
+    {% if instance %}ویرایش کالا «{{ instance.name }}»{% else %}کالای جدید{% endif %}
+    <span class="sec-badge">انبار</span>
+    <div style="margin-right:auto">
+      <a href="{% url 'inventory:item_list' %}" class="btn btn-ghost btn-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5"  y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        بازگشت به لیست
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+
+    {# ══ فرم ══ #}
+    <div class="col-12 col-md-8 col-lg-7">
+      <div class="card">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {# ── ROW 1: نام + دسته‌بندی ── #}
+          <div class="row">
+            <div class="col-12 col-md-7">
+              <div class="form-group {% if form.name.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.name.id_for_label }}">
+                  <span class="req">* </span>{{ form.name.label }}
+                </label>
+                {{ form.name }}
+                {% for e in form.name.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+            <div class="col-12 col-md-5">
+              <div class="form-group {% if form.category.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.category.id_for_label }}">
+                  <span class="req">* </span>{{ form.category.label }}
+                </label>
+                {{ form.category }}
+                {% for e in form.category.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# ── ROW 2: واحد + قیمت خرید ── #}
+          <div class="row">
+            <div class="col-12 col-md-4">
+              <div class="form-group {% if form.unit.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.unit.id_for_label }}">
+                  <span class="req">* </span>{{ form.unit.label }}
+                </label>
+                {{ form.unit }}
+                {% for e in form.unit.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+            <div class="col-12 col-md-8">
+              <div class="form-group {% if form.purchase_price.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.purchase_price.id_for_label }}">
+                  {{ form.purchase_price.label }}
+                </label>
+                {{ form.purchase_price }}
+                {% for e in form.purchase_price.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# ── ROW 3: موجودی + تأمین‌کننده ── #}
+          <div class="row">
+            <div class="col-12 col-md-5">
+              <div class="form-group {% if form.current_stock.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.current_stock.id_for_label }}">
+                  {{ form.current_stock.label }}
+                </label>
+                {{ form.current_stock }}
+                {% if instance %}
+                  {% if instance.current_stock <= 0 %}
+                    <div class="stock-badge sb-zero">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2.5"
+                           stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8"  x2="12"    y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      موجودی صفر
+                    </div>
+                  {% elif instance.current_stock < 5 %}
+                    <div class="stock-badge sb-low">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2.5"
+                           stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                      موجودی کم
+                    </div>
+                  {% else %}
+                    <div class="stock-badge sb-ok">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2.5"
+                           stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      موجودی کافی
+                    </div>
+                  {% endif %}
+                {% endif %}
+                {% for e in form.current_stock.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+                <div class="fs-11 text-muted" style="margin-top:4px">
+                  {% if instance %}
+                    برای تغییر موجودی از طریق ثبت تراکنش انبار اقدام کنید.
+                  {% else %}
+                    موجودی اولیه هنگام ایجاد کالا
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-7">
+              <div class="form-group {% if form.supplier.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.supplier.id_for_label }}">
+                  {{ form.supplier.label }}
+                </label>
+                {{ form.supplier }}
+                {% for e in form.supplier.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# ── دکمه‌ها ── #}
+          <div class="sep"></div>
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              {% if instance %}ذخیره تغییرات{% else %}ایجاد کالا{% endif %}
+            </button>
+            <a href="{% url 'inventory:item_list' %}" class="btn btn-ghost">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5"  y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+              انصراف
+            </a>
+            {% if instance %}
+            <a href="{% url 'inventory:transaction_create' %}?item={{ instance.pk }}"
+               class="btn btn-outline btn-sm" style="margin-right:auto">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5"  x2="12" y2="19"/>
+                <line x1="5"  y1="12" x2="19" y2="12"/>
+              </svg>
+              ثبت تراکنش برای این کالا
+            </a>
+            {% endif %}
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    {# ══ اطلاعات جانبی (edit mode) ══ #}
+    {% if instance %}
+    <div class="col-12 col-md-4 col-lg-3">
+      <div class="card" style="background:var(--surface2)">
+        <div class="sec-title" style="margin-bottom:12px;font-size:13px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="var(--p2)" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8"  x2="12"    y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          خلاصه کالا
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div>
+            <div class="fs-11 text-muted mb-8">تعداد تراکنش</div>
+            <div class="fw-700">
+              {{ instance.transactions.count }} تراکنش
+            </div>
+          </div>
+          <div>
+            <div class="fs-11 text-muted mb-8">ارزش موجودی</div>
+            <div class="fw-700 text-success">
+              {% with val=instance.current_stock|floatformat:0 %}
+                {{ instance.purchase_price|floatformat:0 }} × {{ instance.current_stock|floatformat:2 }}
+              {% endwith %}
+            </div>
+          </div>
+          <div class="sep" style="margin:4px 0"></div>
+          <div>
+            <div class="fs-11 text-muted mb-8">تاریخ ایجاد</div>
+            <div class="fw-600 fs-12">{{ instance.created_at|date:"Y/m/d H:i" }}</div>
+          </div>
+          {% if instance.created_by %}
+          <div>
+            <div class="fs-11 text-muted mb-8">ایجادکننده</div>
+            <div class="fw-600 fs-12">
+              {{ instance.created_by.get_full_name|default:instance.created_by.username }}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

@@ -19,4 +19,13 @@ urlpatterns = [
         views.InventoryTransactionUpdateView.as_view(),
         name="transaction_update",
     ),
+    path("item/",
+         views.InventoryItemListView.as_view(),
+         name="item_list"),
+    path("item/create/",
+         views.InventoryItemCreateView.as_view(),
+         name="item_create"),
+    path("item/<int:pk>/edit/",
+         views.InventoryItemUpdateView.as_view(),
+         name="item_update"),
 ]

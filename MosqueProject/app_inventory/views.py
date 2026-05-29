@@ -2,10 +2,9 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect
-from django.views import View
 from django.views.generic import TemplateView
 
-from .forms import InventoryTransactionForm
+from .forms import InventoryTransactionForm, InventoryItemForm
 from .models import InventoryTransaction, InventoryItem, InventoryCategory
 
 
@@ -188,4 +187,86 @@ class InventoryTransactionUpdateView(LoginRequiredMixin, TemplateView):
                 f"تراکنش «{updated.item.name}» با موفقیت ویرایش شد.",
             )
             return redirect("inventory:transaction_list")
+        return self.render_to_response(self._ctx(form, obj))
+
+
+
+class InventoryItemListView(LoginRequiredMixin, TemplateView):
+    template_name = "inventory_item_list.html"
+
+    def get(self, request, *args, **kwargs):
+        qs = (
+            InventoryItem.objects
+            .filter(is_deleted=False)
+            .select_related("category", "supplier")
+            .order_by("category__name", "name")
+        )
+
+        p = request.GET
+        q       = p.get("q", "").strip()
+        cat_id  = p.get("category", "")
+
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q)
+                | Q(category__name__icontains=q)
+                | Q(supplier__name__icontains=q)
+            )
+        if cat_id.isdigit():
+            qs = qs.filter(category_id=cat_id)
+
+        ctx = {
+            "items":      qs,
+            "total":      qs.count(),
+            "categories": InventoryCategory.objects.filter(is_deleted=False).order_by("name"),
+            "f_q":        q,
+            "f_category": cat_id,
+            "has_filters": any([q, cat_id]),
+        }
+        return self.render_to_response(ctx)
+
+
+class InventoryItemCreateView(LoginRequiredMixin, TemplateView):
+    template_name = "inventory_item_form.html"
+
+    def _ctx(self, form, instance=None):
+        return {"form": form, "instance": instance}
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response(self._ctx(InventoryItemForm()))
+
+    def post(self, request, *args, **kwargs):
+        form = InventoryItemForm(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.created_by = request.user
+            obj.updated_by = request.user
+            obj.save()
+            messages.success(request, f"کالای «{obj.name}» با موفقیت ایجاد شد.")
+            return redirect("inventory:item_list")
+        return self.render_to_response(self._ctx(form))
+
+
+class InventoryItemUpdateView(LoginRequiredMixin, TemplateView):
+    template_name = "inventory_item_form.html"
+
+    def _get_obj(self, pk):
+        return get_object_or_404(InventoryItem, pk=pk, is_deleted=False)
+
+    def _ctx(self, form, instance):
+        return {"form": form, "instance": instance}
+
+    def get(self, request, pk, *args, **kwargs):
+        obj = self._get_obj(pk)
+        return self.render_to_response(self._ctx(InventoryItemForm(instance=obj), obj))
+
+    def post(self, request, pk, *args, **kwargs):
+        obj  = self._get_obj(pk)
+        form = InventoryItemForm(request.POST, instance=obj)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.updated_by = request.user
+            updated.save()
+            messages.success(request, f"کالای «{updated.name}» با موفقیت ویرایش شد.")
+            return redirect("inventory:item_list")
         return self.render_to_response(self._ctx(form, obj))
