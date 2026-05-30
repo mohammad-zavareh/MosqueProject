@@ -28,4 +28,19 @@ urlpatterns = [
     path("item/<int:pk>/edit/",
          views.InventoryItemUpdateView.as_view(),
          name="item_update"),
+    path(
+        "supplier/",
+        views.SupplierListView.as_view(),
+        name="supplier_list",
+    ),
+    path(
+        "supplier/create/",
+        views.SupplierCreateView.as_view(),
+        name="supplier_create",
+    ),
+    path(
+        "supplier/<int:pk>/edit/",
+        views.SupplierUpdateView.as_view(),
+        name="supplier_update",
+    ),
 ]

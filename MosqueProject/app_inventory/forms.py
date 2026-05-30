@@ -149,3 +149,37 @@ class InventoryItemForm(forms.ModelForm):
         )
         self.fields["supplier"].empty_label = "— بدون تأمین‌کننده —"
         self.fields["supplier"].required    = False
+
+
+
+class SupplierForm(forms.ModelForm):
+    class Meta:
+        model  = Supplier
+        fields = ["name", "phone", "address"]
+        widgets = {
+            "name":    forms.TextInput(attrs={
+                           **_INPUT,
+                           "placeholder": "نام تأمین‌کننده",
+                       }),
+            "phone":   forms.TextInput(attrs={
+                           **_INPUT,
+                           "placeholder": "مثال: ۰۹۱۲۳۴۵۶۷۸۹",
+                       }),
+            "address": forms.Textarea(attrs={
+                           **_TEXTAREA,
+                           "placeholder": "آدرس (اختیاری)...",
+                       }),
+        }
+        labels = {
+            "name":    "نام تأمین‌کننده",
+            "phone":   "شماره تماس",
+            "address": "آدرس",
+        }
+        error_messages = {
+            "name": {"required": "نام تأمین‌کننده الزامی است."},
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["phone"].required   = False
+        self.fields["address"].required = False

@@ -1,11 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import TemplateView
 
-from .forms import InventoryTransactionForm, InventoryItemForm
-from .models import InventoryTransaction, InventoryItem, InventoryCategory
+from .forms import InventoryTransactionForm, InventoryItemForm, SupplierForm
+from .models import InventoryTransaction, InventoryItem, InventoryCategory, Supplier
 
 
 # ══════════════════════════════════════════════════════════════
@@ -269,4 +269,88 @@ class InventoryItemUpdateView(LoginRequiredMixin, TemplateView):
             updated.save()
             messages.success(request, f"کالای «{updated.name}» با موفقیت ویرایش شد.")
             return redirect("inventory:item_list")
+        return self.render_to_response(self._ctx(form, obj))
+
+
+
+
+
+class SupplierListView(LoginRequiredMixin, TemplateView):
+    template_name = "supplier_list.html"
+
+    def get(self, request, *args, **kwargs):
+        q  = request.GET.get("q", "").strip()
+        qs = Supplier.objects.filter(is_deleted=False)
+
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q)
+                | Q(phone__icontains=q)
+                | Q(address__icontains=q)
+            )
+
+        qs = qs.annotate(
+            item_count=Count("items", filter=Q(items__is_deleted=False))
+        ).order_by("name")
+
+        ctx = {
+            "suppliers":   qs,
+            "total":       qs.count(),
+            "q":           q,
+            "has_filters": bool(q),
+        }
+        return self.render_to_response(ctx)
+
+
+class SupplierCreateView(LoginRequiredMixin, TemplateView):
+    template_name = "supplier_form.html"
+
+    def _ctx(self, form, instance=None):
+        return {"form": form, "instance": instance}
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response(self._ctx(SupplierForm()))
+
+    def post(self, request, *args, **kwargs):
+        form = SupplierForm(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.created_by = request.user
+            obj.updated_by = request.user
+            obj.save()
+            messages.success(
+                request,
+                f"تأمین‌کننده «{obj.name}» با موفقیت ایجاد شد.",
+            )
+            return redirect("inventory:supplier_list")
+        return self.render_to_response(self._ctx(form))
+
+
+class SupplierUpdateView(LoginRequiredMixin, TemplateView):
+    template_name = "supplier_form.html"
+
+    def _get_obj(self, pk):
+        return get_object_or_404(Supplier, pk=pk, is_deleted=False)
+
+    def _ctx(self, form, instance):
+        return {"form": form, "instance": instance}
+
+    def get(self, request, pk, *args, **kwargs):
+        obj = self._get_obj(pk)
+        return self.render_to_response(
+            self._ctx(SupplierForm(instance=obj), obj)
+        )
+
+    def post(self, request, pk, *args, **kwargs):
+        obj  = self._get_obj(pk)
+        form = SupplierForm(request.POST, instance=obj)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.updated_by = request.user
+            updated.save()
+            messages.success(
+                request,
+                f"تأمین‌کننده «{updated.name}» با موفقیت ویرایش شد.",
+            )
+            return redirect("inventory:supplier_list")
         return self.render_to_response(self._ctx(form, obj))
