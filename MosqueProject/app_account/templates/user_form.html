@@ -1,0 +1,291 @@
+{% extends "base/main.html" %}
+{% load static %}
+
+{% block title %}ایجاد کاربر جدید{% endblock %}
+
+{% block extra_css %}
+<style>
+.field-err{
+  display:flex;align-items:center;gap:5px;
+  font-size:11.5px;color:var(--red);margin-top:5px;
+}
+.field-err::before{
+  content:'';width:4px;height:4px;border-radius:50%;
+  background:var(--red);flex-shrink:0;
+}
+.has-err .form-ctrl{border-color:var(--red)!important}
+.has-err .form-ctrl:focus{box-shadow:0 0 0 3px rgba(220,38,38,.1)!important}
+
+/* نمایش/مخفی رمز */
+.pw-wrap{position:relative}
+.pw-toggle{
+  position:absolute;top:50%;transform:translateY(-50%);
+  left:11px;background:none;border:none;
+  color:var(--txt3);cursor:pointer;padding:2px;
+  display:flex;transition:color var(--t);
+}
+.pw-toggle:hover{color:var(--txt2)}
+.pw-wrap .form-ctrl{padding-left:36px}
+
+/* قدرت رمز */
+.pw-strength{margin-top:6px;display:none}
+.pw-strength.show{display:block}
+.pw-bars{display:flex;gap:4px;margin-bottom:4px}
+.pw-bar{
+  height:4px;flex:1;border-radius:2px;
+  background:var(--border);transition:background .3s;
+}
+.pw-label{font-size:11px;color:var(--txt3)}
+.strength-1 .pw-bar:nth-child(1){background:var(--red)}
+.strength-2 .pw-bar:nth-child(-n+2){background:var(--amber)}
+.strength-3 .pw-bar:nth-child(-n+3){background:var(--blue)}
+.strength-4 .pw-bar{background:var(--green)}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="content">
+
+  {# ══ عنوان ══ #}
+  <div class="sec-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+         stroke="var(--p2)" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+    ایجاد کاربر جدید
+    <span class="sec-badge">مدیریت کاربران</span>
+    <div style="margin-right:auto">
+      <a href="{% url 'account:user_list' %}" class="btn btn-ghost btn-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5"  y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        بازگشت به لیست
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12 col-md-7 col-lg-5">
+      <div class="card">
+        <form method="post" novalidate autocomplete="off">
+          {% csrf_token %}
+
+          {# ── نام کاربری ── #}
+          <div class="form-group {% if form.username.errors %}has-err{% endif %}">
+            <label class="form-lbl" for="{{ form.username.id_for_label }}">
+              <span class="req">* </span>{{ form.username.label }}
+            </label>
+            {{ form.username }}
+            {% for e in form.username.errors %}
+              <div class="field-err">{{ e }}</div>
+            {% endfor %}
+            <div class="fs-11 text-muted" style="margin-top:4px">
+              فقط حروف انگلیسی، اعداد و _ مجاز است.
+            </div>
+          </div>
+
+          {# ── نام + نام خانوادگی ── #}
+          <div class="row">
+            <div class="col-12 col-md-6">
+              <div class="form-group {% if form.first_name.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.first_name.id_for_label }}">
+                  {{ form.first_name.label }}
+                </label>
+                {{ form.first_name }}
+                {% for e in form.first_name.errors %}
+                  <div class="field-err">{{ e }}</div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="form-group {% if form.last_name.errors %}has-err{% endif %}">
+                <label class="form-lbl" for="{{ form.last_name.id_for_label }}">
+                  {{ form.last_name.label }}
+                </label>
+                {{ form.last_name }}
+                {% for e in form.last_name.errors %}
+                  <div class="field-err">{{ e }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# ── رمز عبور ── #}
+          <div class="form-group {% if form.password1.errors %}has-err{% endif %}">
+            <label class="form-lbl" for="{{ form.password1.id_for_label }}">
+              <span class="req">* </span>{{ form.password1.label }}
+            </label>
+            <div class="pw-wrap">
+              {{ form.password1 }}
+              <button type="button" class="pw-toggle"
+                      onclick="togglePw('{{ form.password1.id_for_label }}', this)">
+                <svg id="eye1-show" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <svg id="eye1-hide" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round"
+                     style="display:none">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
+            </div>
+            {# قدرت‌سنج رمز #}
+            <div class="pw-strength" id="pwStrength">
+              <div class="pw-bars">
+                <div class="pw-bar"></div>
+                <div class="pw-bar"></div>
+                <div class="pw-bar"></div>
+                <div class="pw-bar"></div>
+              </div>
+              <div class="pw-label" id="pwLabel">—</div>
+            </div>
+            {% for e in form.password1.errors %}
+              <div class="field-err">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          {# ── تکرار رمز ── #}
+          <div class="form-group {% if form.password2.errors %}has-err{% endif %}">
+            <label class="form-lbl" for="{{ form.password2.id_for_label }}">
+              <span class="req">* </span>{{ form.password2.label }}
+            </label>
+            <div class="pw-wrap">
+              {{ form.password2 }}
+              <button type="button" class="pw-toggle"
+                      onclick="togglePw('{{ form.password2.id_for_label }}', this)">
+                <svg id="eye2-show" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <svg id="eye2-hide" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round"
+                     style="display:none">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
+            </div>
+            {% for e in form.password2.errors %}
+              <div class="field-err">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          {# ── دکمه ── #}
+          <div class="sep"></div>
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              ایجاد کاربر
+            </button>
+            <a href="{% url 'account:user_list' %}" class="btn btn-ghost">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5"  y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+              انصراف
+            </a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    {# ══ راهنما ══ #}
+    <div class="col-12 col-md-5 col-lg-4">
+      <div class="card" style="background:var(--surface2)">
+        <div class="sec-title" style="margin-bottom:12px;font-size:13px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="var(--p2)" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8"  x2="12"    y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          راهنما
+        </div>
+        <div style="font-size:12.5px;color:var(--txt2);line-height:1.8;display:flex;flex-direction:column;gap:8px">
+          <div>
+            <strong>نام کاربری:</strong>
+            باید یکتا باشد. می‌تواند شامل حروف انگلیسی، اعداد و علامت _ باشد.
+          </div>
+          <div>
+            <strong>رمز عبور:</strong>
+            حداقل ۸ کاراکتر، ترکیب حروف و اعداد توصیه می‌شود.
+          </div>
+          <div>
+            <strong>نام و نام خانوادگی:</strong>
+            اختیاری است ولی برای شناسایی بهتر کاربر توصیه می‌شود.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/* نمایش/مخفی رمز */
+function togglePw(inputId, btn) {
+  var input = document.getElementById(inputId);
+  var isText = input.type === 'text';
+  input.type = isText ? 'password' : 'text';
+  var showIcon = btn.querySelector('[id$="-show"]');
+  var hideIcon = btn.querySelector('[id$="-hide"]');
+  if (showIcon) showIcon.style.display = isText ? '' : 'none';
+  if (hideIcon) hideIcon.style.display = isText ? 'none' : '';
+}
+
+/* قدرت‌سنج رمز */
+var pw1 = document.getElementById('{{ form.password1.id_for_label }}');
+var strengthEl = document.getElementById('pwStrength');
+var labelEl    = document.getElementById('pwLabel');
+var labels = ['', 'ضعیف', 'متوسط', 'خوب', 'قوی'];
+var colors = ['', 'var(--red)', 'var(--amber)', 'var(--blue)', 'var(--green)'];
+
+function calcStrength(pw) {
+  if (!pw) return 0;
+  var score = 0;
+  if (pw.length >= 8)  score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  return score;
+}
+
+if (pw1) {
+  pw1.addEventListener('input', function () {
+    var val = this.value;
+    if (!val) { strengthEl.classList.remove('show'); return; }
+    var s = calcStrength(val);
+    strengthEl.classList.add('show');
+    strengthEl.className = 'pw-strength show strength-' + s;
+    labelEl.textContent  = 'قدرت رمز: ' + (labels[s] || '');
+    labelEl.style.color  = colors[s] || 'var(--txt3)';
+  });
+}
+</script>
+{% endblock %}

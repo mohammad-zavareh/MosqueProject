@@ -1,0 +1,233 @@
+{% extends "base/main.html" %}
+{% load static %}
+
+{% block title %}مدیریت کاربران{% endblock %}
+
+{% block extra_css %}
+<style>
+.search-wrap{position:relative;flex:1}
+.search-wrap svg{
+  position:absolute;top:50%;transform:translateY(-50%);
+  right:11px;pointer-events:none;color:var(--txt3);
+}
+.search-wrap input{padding-right:36px}
+
+.row-actions{display:flex;gap:4px;opacity:0;transition:opacity var(--t)}
+.tbl tbody tr:hover .row-actions{opacity:1}
+.row-dots{display:flex;color:var(--txt3)}
+.tbl tbody tr:hover .row-dots{display:none}
+
+.avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--p2),var(--p3));
+  color:#fff;font-size:12px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+
+.empty-state{
+  text-align:center;padding:56px 20px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.empty-state svg{opacity:.22;color:var(--txt3)}
+.empty-state h3{font-size:15px;font-weight:700;color:var(--txt2)}
+.empty-state p{font-size:12.5px;color:var(--txt3);line-height:1.65}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="content">
+
+  {# ══ عنوان ══ #}
+  <div class="sec-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+         stroke="var(--p2)" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+    مدیریت کاربران
+    <span class="sec-badge">{{ total }} کاربر</span>
+    <div style="margin-right:auto">
+      <a href="{% url 'account:user_create' %}" class="btn btn-primary btn-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5"  x2="12" y2="19"/>
+          <line x1="5"  y1="12" x2="19" y2="12"/>
+        </svg>
+        کاربر جدید
+      </a>
+    </div>
+  </div>
+
+  {# ══ پیام‌ها ══ #}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} mb-16">
+    <span class="alert-icon">
+      {% if "success" in msg.tags %}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      {% else %}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8"  x2="12"    y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      {% endif %}
+    </span>
+    <div class="alert-body"><div class="alert-txt">{{ msg }}</div></div>
+    <button class="alert-close" onclick="this.closest('.alert').remove()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6"  x2="6"  y2="18"/>
+        <line x1="6"  y1="6"  x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  {% endfor %}
+
+  {# ══ جستجو ══ #}
+  <div class="card mb-16" style="padding:12px 18px">
+    <form method="get" id="searchForm">
+      <div class="d-flex align-c gap-8 fw">
+        <div class="search-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" name="q" id="searchInput"
+                 class="form-ctrl"
+                 placeholder="جستجو در نام کاربری، نام، نام خانوادگی..."
+                 value="{{ q }}">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">جستجو</button>
+        {% if has_filters %}
+          <a href="{% url 'accounts:user_list' %}"
+             class="btn btn-ghost btn-sm">پاک‌سازی</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  {# ══ جدول ══ #}
+  <div class="card" style="padding:0;overflow:hidden">
+    {% if users %}
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:46px">#</th>
+            <th>کاربر</th>
+            <th>نام کاربری</th>
+            <th>نام و نام خانوادگی</th>
+            <th>وضعیت</th>
+            <th>مدیر</th>
+            <th>تاریخ عضویت</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td class="text-muted fs-12">{{ forloop.counter }}</td>
+
+            <td>
+              <div class="d-flex align-c gap-8">
+                <div class="avatar">
+                  {{ u.username|first|upper }}
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <span class="td-main">{{ u.username }}</span>
+              {% if u == request.user %}
+                <span class="badge bdg-green" style="font-size:10px;margin-right:6px">شما</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if u.get_full_name %}
+                {{ u.get_full_name }}
+              {% else %}
+                <span class="text-muted fs-12">ثبت نشده</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if u.is_active %}
+                <span class="badge bdg-green"><span class="dot"></span>فعال</span>
+              {% else %}
+                <span class="badge bdg-red"><span class="dot"></span>غیرفعال</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if u.is_superuser %}
+                <span class="badge bdg-amber">سوپر ادمین</span>
+              {% elif u.is_staff %}
+                <span class="badge bdg-blue">مدیر</span>
+              {% else %}
+                <span class="text-muted fs-12">—</span>
+              {% endif %}
+            </td>
+
+            <td class="text-muted fs-12">
+              {{ u.date_joined|date:"Y/m/d" }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+      </svg>
+      {% if has_filters %}
+        <h3>کاربری یافت نشد</h3>
+        <p>هیچ کاربری با عبارت «{{ q }}» پیدا نشد.</p>
+        <a href="{% url 'accounts:user_list' %}"
+           class="btn btn-outline btn-sm">پاک‌سازی جستجو</a>
+      {% else %}
+        <h3>کاربری وجود ندارد</h3>
+        <p>اولین کاربر را ایجاد کنید.</p>
+        <a href="{% url 'accounts:user_create' %}" class="btn btn-primary btn-sm">
+          کاربر جدید
+        </a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+var searchInput = document.getElementById('searchInput');
+if (searchInput) {
+  var debounce;
+  searchInput.addEventListener('input', function () {
+    clearTimeout(debounce);
+    debounce = setTimeout(function () {
+      document.getElementById('searchForm').submit();
+    }, 450);
+  });
+}
+</script>
+{% endblock %}
