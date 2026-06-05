@@ -3,7 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, Sum, Count
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import TemplateView
-
+from app_core.mixin import AuditViewMixin
 from .forms import InventoryTransactionForm, InventoryItemForm, SupplierForm
 from .models import InventoryTransaction, InventoryItem, InventoryCategory, Supplier
 
@@ -107,19 +107,18 @@ class InventoryTransactionListView(LoginRequiredMixin, TemplateView):
 #  ایجاد تراکنش انبار
 # ══════════════════════════════════════════════════════════════
 
-class InventoryTransactionCreateView(LoginRequiredMixin, TemplateView):
+class InventoryTransactionCreateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
     template_name = "inv_transaction_form.html"
 
     def _ctx(self, form, instance=None):
         return {
-            "form":     form,
-            "instance": instance,
+            "form":       form,
+            "instance":   instance,
             "items_json": self._items_json(),
         }
 
     @staticmethod
     def _items_json():
-        """اطلاعات کالاها برای autofill قیمت واحد در JS"""
         import json
         data = {}
         for item in InventoryItem.objects.filter(is_deleted=False).values(
@@ -133,7 +132,12 @@ class InventoryTransactionCreateView(LoginRequiredMixin, TemplateView):
         return json.dumps(data, ensure_ascii=False)
 
     def get(self, request, *args, **kwargs):
-        return self.render_to_response(self._ctx(InventoryTransactionForm()))
+        form = InventoryTransactionForm()
+        # اگه ?item=pk در URL بود، پیش‌فرض کالا رو ست کن
+        item_pk = request.GET.get("item")
+        if item_pk:
+            form.initial["item"] = item_pk
+        return self.render_to_response(self._ctx(form))
 
     def post(self, request, *args, **kwargs):
         form = InventoryTransactionForm(request.POST)
@@ -142,21 +146,13 @@ class InventoryTransactionCreateView(LoginRequiredMixin, TemplateView):
             obj.created_by = request.user
             obj.updated_by = request.user
             obj.save()
-            messages.success(
-                request,
-                f"تراکنش انبار برای «{obj.item.name}» با موفقیت ثبت شد.",
-            )
+            self._log_create(request, obj)
+            messages.success(request, f"تراکنش انبار برای «{obj.item.name}» با موفقیت ثبت شد.")
             return redirect("inventory:transaction_list")
-        return self.render_to_response(
-            self._ctx(form)
-        )
+        return self.render_to_response(self._ctx(form))
 
 
-# ══════════════════════════════════════════════════════════════
-#  ویرایش تراکنش انبار
-# ══════════════════════════════════════════════════════════════
-
-class InventoryTransactionUpdateView(LoginRequiredMixin, TemplateView):
+class InventoryTransactionUpdateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
     template_name = "inv_transaction_form.html"
 
     def _get_obj(self, pk):
@@ -171,23 +167,23 @@ class InventoryTransactionUpdateView(LoginRequiredMixin, TemplateView):
 
     def get(self, request, pk, *args, **kwargs):
         obj = self._get_obj(pk)
-        return self.render_to_response(
-            self._ctx(InventoryTransactionForm(instance=obj), obj)
-        )
+        request.session[f"audit_snap_{pk}"] = self._snapshot(obj)
+        return self.render_to_response(self._ctx(InventoryTransactionForm(instance=obj), obj))
 
     def post(self, request, pk, *args, **kwargs):
-        obj  = self._get_obj(pk)
-        form = InventoryTransactionForm(request.POST, instance=obj)
+        obj    = self._get_obj(pk)
+        before = request.session.pop(f"audit_snap_{pk}", {})
+        form   = InventoryTransactionForm(request.POST, instance=obj)
         if form.is_valid():
             updated = form.save(commit=False)
             updated.updated_by = request.user
             updated.save()
-            messages.success(
-                request,
-                f"تراکنش «{updated.item.name}» با موفقیت ویرایش شد.",
-            )
+            self._log_update(request, obj, before)
+            messages.success(request, f"تراکنش «{updated.item.name}» با موفقیت ویرایش شد.")
             return redirect("inventory:transaction_list")
         return self.render_to_response(self._ctx(form, obj))
+
+
 
 
 
@@ -226,7 +222,7 @@ class InventoryItemListView(LoginRequiredMixin, TemplateView):
         return self.render_to_response(ctx)
 
 
-class InventoryItemCreateView(LoginRequiredMixin, TemplateView):
+class InventoryItemCreateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
     template_name = "inventory_item_form.html"
 
     def _ctx(self, form, instance=None):
@@ -242,12 +238,13 @@ class InventoryItemCreateView(LoginRequiredMixin, TemplateView):
             obj.created_by = request.user
             obj.updated_by = request.user
             obj.save()
+            self._log_create(request, obj)
             messages.success(request, f"کالای «{obj.name}» با موفقیت ایجاد شد.")
             return redirect("inventory:item_list")
         return self.render_to_response(self._ctx(form))
 
 
-class InventoryItemUpdateView(LoginRequiredMixin, TemplateView):
+class InventoryItemUpdateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
     template_name = "inventory_item_form.html"
 
     def _get_obj(self, pk):
@@ -258,18 +255,23 @@ class InventoryItemUpdateView(LoginRequiredMixin, TemplateView):
 
     def get(self, request, pk, *args, **kwargs):
         obj = self._get_obj(pk)
+        # ← FIX: snapshot قبل از return (در نسخه قبل بعد از return بود!)
+        request.session[f"audit_snap_{pk}"] = self._snapshot(obj)
         return self.render_to_response(self._ctx(InventoryItemForm(instance=obj), obj))
 
     def post(self, request, pk, *args, **kwargs):
-        obj  = self._get_obj(pk)
-        form = InventoryItemForm(request.POST, instance=obj)
+        obj    = self._get_obj(pk)
+        before = request.session.pop(f"audit_snap_{pk}", {})
+        form   = InventoryItemForm(request.POST, instance=obj)
         if form.is_valid():
             updated = form.save(commit=False)
             updated.updated_by = request.user
             updated.save()
+            self._log_update(request, obj, before)
             messages.success(request, f"کالای «{updated.name}» با موفقیت ویرایش شد.")
             return redirect("inventory:item_list")
         return self.render_to_response(self._ctx(form, obj))
+
 
 
 
@@ -302,7 +304,7 @@ class SupplierListView(LoginRequiredMixin, TemplateView):
         return self.render_to_response(ctx)
 
 
-class SupplierCreateView(LoginRequiredMixin, TemplateView):
+class SupplierCreateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
     template_name = "supplier_form.html"
 
     def _ctx(self, form, instance=None):
@@ -318,15 +320,13 @@ class SupplierCreateView(LoginRequiredMixin, TemplateView):
             obj.created_by = request.user
             obj.updated_by = request.user
             obj.save()
-            messages.success(
-                request,
-                f"تأمین‌کننده «{obj.name}» با موفقیت ایجاد شد.",
-            )
+            self._log_create(request, obj)
+            messages.success(request, f"تأمین‌کننده «{obj.name}» با موفقیت ایجاد شد.")
             return redirect("inventory:supplier_list")
         return self.render_to_response(self._ctx(form))
 
 
-class SupplierUpdateView(LoginRequiredMixin, TemplateView):
+class SupplierUpdateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
     template_name = "supplier_form.html"
 
     def _get_obj(self, pk):
@@ -337,20 +337,19 @@ class SupplierUpdateView(LoginRequiredMixin, TemplateView):
 
     def get(self, request, pk, *args, **kwargs):
         obj = self._get_obj(pk)
-        return self.render_to_response(
-            self._ctx(SupplierForm(instance=obj), obj)
-        )
+        # ← snapshot قبل از return
+        request.session[f"audit_snap_{pk}"] = self._snapshot(obj)
+        return self.render_to_response(self._ctx(SupplierForm(instance=obj), obj))
 
     def post(self, request, pk, *args, **kwargs):
-        obj  = self._get_obj(pk)
-        form = SupplierForm(request.POST, instance=obj)
+        obj    = self._get_obj(pk)
+        before = request.session.pop(f"audit_snap_{pk}", {})
+        form   = SupplierForm(request.POST, instance=obj)
         if form.is_valid():
             updated = form.save(commit=False)
             updated.updated_by = request.user
             updated.save()
-            messages.success(
-                request,
-                f"تأمین‌کننده «{updated.name}» با موفقیت ویرایش شد.",
-            )
+            self._log_update(request, obj, before)
+            messages.success(request, f"تأمین‌کننده «{updated.name}» با موفقیت ویرایش شد.")
             return redirect("inventory:supplier_list")
         return self.render_to_response(self._ctx(form, obj))

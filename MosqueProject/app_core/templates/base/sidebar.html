@@ -1,4 +1,8 @@
 <!-- ════════════════ SIDEBAR ════════════════ -->
+
+{# ── تشخیص namespace فعلی برای باز کردن منوی مربوطه ── #}
+{% with ns=request.resolver_match.app_name url_name=request.resolver_match.url_name %}
+
 <aside class="sidebar" id="sidebar">
 
   <div class="sb-logo">
@@ -15,124 +19,165 @@
 
   <nav class="sb-nav">
 
-    <!-- داشبورد -->
+    {# ── داشبورد ── #}
     <div class="sb-section">
-      <a class="sb-link active" href="{% url 'core:dashboard' %}">
+      <a class="sb-link {% if ns == 'core' and url_name == 'dashboard' %}active{% endif %}"
+         href="{% url 'core:dashboard' %}">
         <span class="sb-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
         </span>
         <span class="sb-label">داشبورد</span>
       </a>
     </div>
 
-    <!-- مالی -->
+    {# ── مالی ── #}
     <div class="sb-section">
       <div class="sb-section-lbl">مالی</div>
       <div class="sb-item">
-        <div class="sb-link open" onclick="toggleSub(this)">
+        <div class="sb-link {% if ns == 'finance' %}open{% endif %}"
+             onclick="toggleSub(this)">
           <span class="sb-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
           </span>
           <span class="sb-label">مالی</span>
           <span class="sb-arrow">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
         </div>
-        <div class="sb-sub open">
+        <div class="sb-sub {% if ns == 'finance' %}open{% endif %}">
           <div class="sb-sub-inner">
-            <a class="sb-sub-link" href="{% url 'finance:transaction_list' %}">تراکنش‌ها</a>
-            <a class="sb-sub-link" href="{% url 'finance:fund_list' %}">صندوق ها</a>
-            <a class="sb-sub-link" href="{% url 'finance:event_list' %}">مناسبت ها</a>
-            <a class="sb-sub-link" href="{% url 'finance:category_income_list' %}">دسته بندی درامد</a>
-            <a class="sb-sub-link" href="{% url 'finance:category_expense_list' %}">دسته بندی هزینه</a>
+            <a class="sb-sub-link {% if url_name == 'transaction_list' and ns == 'finance' %}active{% endif %}"
+               href="{% url 'finance:transaction_list' %}">تراکنش‌ها</a>
+            <a class="sb-sub-link {% if url_name == 'fund_list' %}active{% endif %}"
+               href="{% url 'finance:fund_list' %}">صندوق‌ها</a>
+            <a class="sb-sub-link {% if url_name == 'event_list' %}active{% endif %}"
+               href="{% url 'finance:event_list' %}">مناسبت‌ها</a>
+            <a class="sb-sub-link {% if url_name == 'category_income_list' %}active{% endif %}"
+               href="{% url 'finance:category_income_list' %}">دسته‌بندی درآمد</a>
+            <a class="sb-sub-link {% if url_name == 'category_expense_list' %}active{% endif %}"
+               href="{% url 'finance:category_expense_list' %}">دسته‌بندی هزینه</a>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- انبار -->
+    {# ── انبار ── #}
     <div class="sb-section">
       <div class="sb-section-lbl">انبار</div>
       <div class="sb-item">
-        <div class="sb-link" onclick="toggleSub(this)">
+        <div class="sb-link {% if ns == 'inventory' %}open{% endif %}"
+             onclick="toggleSub(this)">
           <span class="sb-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
           </span>
           <span class="sb-label">انبار</span>
           <span class="sb-arrow">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
         </div>
-        <div class="sb-sub">
+        <div class="sb-sub {% if ns == 'inventory' %}open{% endif %}">
           <div class="sb-sub-inner">
-            <a class="sb-sub-link" href="{% url 'inventory:transaction_list' %}">تراکنش ها</a>
-            <a class="sb-sub-link" href="{% url 'inventory:item_list' %}">لیست کالاها</a>
-            <a class="sb-sub-link" href="{% url 'inventory:supplier_list' %}">تأمین‌کنندگان</a>
+            <a class="sb-sub-link {% if url_name == 'transaction_list' and ns == 'inventory' %}active{% endif %}"
+               href="{% url 'inventory:transaction_list' %}">تراکنش‌ها</a>
+            <a class="sb-sub-link {% if url_name == 'item_list' %}active{% endif %}"
+               href="{% url 'inventory:item_list' %}">لیست کالاها</a>
+            <a class="sb-sub-link {% if url_name == 'supplier_list' %}active{% endif %}"
+               href="{% url 'inventory:supplier_list' %}">تأمین‌کنندگان</a>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- گزارش‌ها -->
+    {# ── گزارش‌ها ── #}
     <div class="sb-section">
       <div class="sb-section-lbl">گزارش‌ها</div>
       <div class="sb-item">
-        <div class="sb-link" onclick="toggleSub(this)">
+        <div class="sb-link {% if ns == 'reports' %}open{% endif %}"
+             onclick="toggleSub(this)">
           <span class="sb-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6"  y1="20" x2="6"  y2="14"/>
+            </svg>
           </span>
           <span class="sb-label">گزارش‌ها</span>
           <span class="sb-arrow">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
         </div>
-        <div class="sb-sub">
+        <div class="sb-sub {% if ns == 'reports' %}open{% endif %}">
           <div class="sb-sub-inner">
-            <a class="sb-sub-link" href="#">گزارش درآمد</a>
-            <a class="sb-sub-link" href="#">گزارش هزینه</a>
-            <a class="sb-sub-link" href="#">گزارش انبار</a>
-            <a class="sb-sub-link" href="#">گردش صندوق</a>
+            <a class="sb-sub-link {% if url_name == 'report_income' %}active{% endif %}"
+               href="#">گزارش درآمد</a>
+            <a class="sb-sub-link {% if url_name == 'report_expense' %}active{% endif %}"
+               href="#">گزارش هزینه</a>
+            <a class="sb-sub-link {% if url_name == 'report_inventory' %}active{% endif %}"
+               href="#">گزارش انبار</a>
+            <a class="sb-sub-link {% if url_name == 'report_fund' %}active{% endif %}"
+               href="#">گردش صندوق</a>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- تنظیمات -->
+    {# ── تنظیمات ── #}
     <div class="sb-section">
       <div class="sb-section-lbl">تنظیمات</div>
       <div class="sb-item">
-        <div class="sb-link" onclick="toggleSub(this)">
+        <div class="sb-link {% if ns == 'account' and url_name != 'logout' %}open{% endif %}"
+             onclick="toggleSub(this)">
           <span class="sb-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+            </svg>
           </span>
           <span class="sb-label">تنظیمات</span>
           <span class="sb-arrow">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
         </div>
-        <div class="sb-sub">
+        <div class="sb-sub {% if ns == 'account' and url_name != 'logout' %}open{% endif %}">
           <div class="sb-sub-inner">
             <a class="sb-sub-link" href="#">تنظیمات سیستم</a>
-            <a class="sb-sub-link" href="{% url 'account:user_list' %}">کاربران</a>
+            <a class="sb-sub-link {% if url_name == 'user_list' %}active{% endif %}"
+               href="{% url 'account:user_list' %}">کاربران</a>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- حسابرسی -->
+    {# ── حسابرسی ── #}
     <div class="sb-section">
-      <a class="sb-link" href="#">
+      <a class="sb-link {% if ns == 'core' and 'audit' in url_name %}active{% endif %}"
+         href="{% url 'core:audit_list' %}">
         <span class="sb-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
         </span>
         <span class="sb-label">حسابرسی</span>
-        <span class="badge bdg-amber" style="font-size:10px;padding:1px 7px">جدید</span>
       </a>
     </div>
 
   </nav>
 
-  <!-- User -->
+  {# ── یوزر ── #}
   <div class="sb-user">
     <div class="sb-dropdown" id="userDrop">
       <a href="#">
@@ -154,10 +199,10 @@
       </a>
     </div>
     <div class="sb-user-btn" onclick="toggleUser()">
-      <div class="sb-avatar">ع</div>
+      <div class="sb-avatar">{{ request.user.first_name|first|default:request.user.username|first|upper }}</div>
       <div class="sb-user-info">
-        <strong>{{ request.user }}</strong>
-        <span>مدیر سیستم</span>
+        <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+        <span>{% if request.user.is_superuser %}سوپر ادمین{% elif request.user.is_staff %}مدیر{% else %}کاربر{% endif %}</span>
       </div>
       <span class="sb-user-arrow" id="uArrow">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
@@ -166,3 +211,5 @@
   </div>
 
 </aside>
+
+{% endwith %}

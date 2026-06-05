@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.db.models import Count, Sum, Q
 from django.views.generic import TemplateView, ListView, DetailView
-
+from app_core.mixin import AuditViewMixin
 from .forms import TransactionBaseForm, IncomeDetailForm, ExpenseDetailForm, IncomeCategoryForm, ExpenseCategoryForm, EventForm, FundForm
 from .models import (
     FinancialTransaction, IncomeDetail, ExpenseDetail,
@@ -208,11 +208,10 @@ def _build_ctx(inc_base, inc_detail, exp_base, exp_detail,
 
 
 # ── ثبت جدید ─────────────────────────────────────────────────
-class TransactionCreateView(LoginRequiredMixin, TemplateView):
+class TransactionCreateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
     template_name = "transaction_form.html"
 
     def get(self, request, *args, **kwargs):
-        # ?tab=expense برای باز شدن مستقیم تب هزینه
         tab = request.GET.get("tab", "income")
         ctx = _build_ctx(
             TransactionBaseForm(prefix="inc"),
@@ -224,7 +223,6 @@ class TransactionCreateView(LoginRequiredMixin, TemplateView):
         return self.render_to_response(ctx)
 
     def post(self, request, *args, **kwargs):
-        # hidden input _active_tab مشخص می‌کند کدام فرم submit شده
         tab = request.POST.get("_active_tab", "income")
 
         if tab == "income":
@@ -248,17 +246,16 @@ class TransactionCreateView(LoginRequiredMixin, TemplateView):
                 det = active_detail.save(commit=False)
                 det.transaction = txn
                 det.save()
+            self._log_create(request, txn)
             label = "درآمد" if txn_type == "INCOME" else "هزینه"
             messages.success(request, f"{label} با موفقیت ثبت شد.")
             return redirect("finance:transaction_list")
 
-        ctx = _build_ctx(inc_base, inc_detail, exp_base, exp_detail,
-                         active_tab=tab)
+        ctx = _build_ctx(inc_base, inc_detail, exp_base, exp_detail, active_tab=tab)
         return self.render_to_response(ctx)
 
 
-# ── ویرایش ───────────────────────────────────────────────────
-class TransactionUpdateView(LoginRequiredMixin, TemplateView):
+class TransactionUpdateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
     template_name = "transaction_form.html"
 
     def _get_txn(self, pk):
@@ -267,6 +264,8 @@ class TransactionUpdateView(LoginRequiredMixin, TemplateView):
     def get(self, request, pk, *args, **kwargs):
         txn = self._get_txn(pk)
         tab = "income" if txn.transaction_type == "INCOME" else "expense"
+        # ← snapshot قبل از render
+        request.session[f"audit_snap_{pk}"] = self._snapshot(txn)
 
         if txn.transaction_type == "INCOME":
             det = get_object_or_404(IncomeDetail, transaction=txn)
@@ -289,11 +288,12 @@ class TransactionUpdateView(LoginRequiredMixin, TemplateView):
         return self.render_to_response(ctx)
 
     def post(self, request, pk, *args, **kwargs):
-        txn = self._get_txn(pk)
-        tab = request.POST.get("_active_tab", "income")
+        txn    = self._get_txn(pk)
+        tab    = request.POST.get("_active_tab", "income")
+        before = request.session.pop(f"audit_snap_{pk}", {})
 
         if txn.transaction_type == "INCOME":
-            det        = get_object_or_404(IncomeDetail, transaction=txn)
+            det         = get_object_or_404(IncomeDetail, transaction=txn)
             active_base = TransactionBaseForm(request.POST, request.FILES,
                                               instance=txn, prefix="inc")
             active_det  = IncomeDetailForm(request.POST, instance=det, prefix="inc_d")
@@ -301,7 +301,7 @@ class TransactionUpdateView(LoginRequiredMixin, TemplateView):
             exp_base   = TransactionBaseForm(prefix="exp")
             exp_detail = ExpenseDetailForm(prefix="exp_d")
         else:
-            det        = get_object_or_404(ExpenseDetail, transaction=txn)
+            det         = get_object_or_404(ExpenseDetail, transaction=txn)
             active_base = TransactionBaseForm(request.POST, request.FILES,
                                               instance=txn, prefix="exp")
             active_det  = ExpenseDetailForm(request.POST, instance=det, prefix="exp_d")
@@ -313,6 +313,7 @@ class TransactionUpdateView(LoginRequiredMixin, TemplateView):
             with db_transaction.atomic():
                 active_base.save()
                 active_det.save()
+            self._log_update(request, txn, before)
             label = "درآمد" if txn.transaction_type == "INCOME" else "هزینه"
             messages.success(request, f"{label} با موفقیت ویرایش شد.")
             return redirect("finance:transaction_list")
@@ -320,6 +321,7 @@ class TransactionUpdateView(LoginRequiredMixin, TemplateView):
         ctx = _build_ctx(inc_base, inc_detail, exp_base, exp_detail,
                          active_tab=tab, instance=txn)
         return self.render_to_response(ctx)
+
 
 
 
