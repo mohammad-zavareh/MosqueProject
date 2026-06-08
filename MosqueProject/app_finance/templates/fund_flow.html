@@ -1,0 +1,209 @@
+{% extends "base/main.html" %}
+{% load static %}
+{% load persian_filters %}
+
+{% block title %}گردش صندوق{% endblock %}
+
+{% block extra_css %}
+<style>
+.filter-bar{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 18px;
+  margin-bottom:16px;box-shadow:var(--shadow);
+}
+.sum-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.sum-chip{
+  display:flex;align-items:center;gap:7px;padding:8px 16px;
+  border-radius:var(--r-sm);font-size:12.5px;font-weight:600;
+  border:1px solid transparent;
+}
+.sc-open  {background:var(--blue-bg);border-color:rgba(37,99,235,.2);color:var(--blue-txt)}
+.sc-inc   {background:var(--green-bg);border-color:rgba(22,163,74,.2);color:var(--green-txt)}
+.sc-exp   {background:var(--red-bg);border-color:rgba(220,38,38,.2);color:var(--red-txt)}
+.sc-close {background:var(--p-glow);border-color:rgba(26,107,74,.2);color:var(--p2)}
+
+.balance-pos{color:var(--green);font-weight:700}
+.balance-neg{color:var(--red);font-weight:700}
+.amount-inc {color:var(--green);font-weight:700}
+.amount-exp {color:var(--red);font-weight:700}
+
+.empty-state{text-align:center;padding:56px 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.empty-state svg{opacity:.22;color:var(--txt3)}
+.empty-state h3{font-size:15px;font-weight:700;color:var(--txt2)}
+.empty-state p{font-size:12.5px;color:var(--txt3);line-height:1.65}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="content">
+
+  <div class="sec-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--p2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+      <line x1="1" y1="10" x2="23" y2="10"/>
+    </svg>
+    گردش صندوق
+    <span class="sec-badge">{{ date_from }} تا {{ date_to }}</span>
+    <div style="margin-right:auto">
+      <button onclick="window.print()" class="btn btn-ghost btn-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 6 2 18 2 18 9"/>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+          <rect x="6" y="14" width="12" height="8"/>
+        </svg>
+        چاپ
+      </button>
+    </div>
+  </div>
+
+  {# ══ فیلتر ══ #}
+  <div class="filter-bar">
+    <form method="get" id="filterForm">
+      <div class="row">
+        <div class="col-12 col-md-3">
+          <div class="form-group">
+            <label class="form-lbl">از تاریخ</label>
+            <input type="date" name="date_from" class="form-ctrl" value="{{ date_from }}">
+          </div>
+        </div>
+        <div class="col-12 col-md-3">
+          <div class="form-group">
+            <label class="form-lbl">تا تاریخ</label>
+            <input type="date" name="date_to" class="form-ctrl" value="{{ date_to }}">
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="form-group">
+            <label class="form-lbl">صندوق</label>
+            <select name="fund" class="form-ctrl">
+              <option value="">— همه صندوق‌ها —</option>
+              {% for fund in funds %}
+                <option value="{{ fund.pk }}"
+                  {% if selected_fund.pk == fund.pk %}selected{% endif %}>
+                  {{ fund.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="col-12 col-md-2" style="display:flex;align-items:flex-end">
+          <div class="form-group" style="width:100%">
+            <label class="form-lbl">&nbsp;</label>
+            <button type="submit" class="btn btn-primary btn-block">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              اعمال
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {# ══ خلاصه ══ #}
+  <div class="sum-bar">
+    <div class="sum-chip sc-open">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      موجودی ابتدا: {{ opening_balance|money:"تومان" }}
+    </div>
+    <div class="sum-chip sc-inc">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      درآمد دوره: {{ period_income|money:"تومان" }}
+    </div>
+    <div class="sum-chip sc-exp">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+      هزینه دوره: {{ period_expense|money:"تومان" }}
+    </div>
+    <div class="sum-chip sc-close">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      موجودی پایان: {{ closing_balance|money:"تومان" }}
+    </div>
+  </div>
+
+  {# ══ جدول گردش ══ #}
+  <div class="card" style="padding:0;overflow:hidden">
+    {% if rows %}
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:46px">#</th>
+            <th>تاریخ</th>
+            <th>نوع</th>
+            <th>دسته‌بندی</th>
+            <th>صندوق</th>
+            <th>شماره مرجع</th>
+            <th>درآمد</th>
+            <th>هزینه</th>
+            <th>موجودی</th>
+          </tr>
+        </thead>
+        <tbody>
+          {# ردیف موجودی ابتدای دوره #}
+          <tr style="background:var(--blue-bg)">
+            <td colspan="8" style="font-size:12px;font-weight:700;color:var(--blue-txt);padding:8px 14px">
+              موجودی ابتدای دوره
+            </td>
+            <td style="font-weight:800;color:var(--blue-txt);padding:8px 14px">
+              {{ opening_balance|money }}
+            </td>
+          </tr>
+
+          {% for row in rows %}
+          <tr>
+            <td class="text-muted fs-12">{{ forloop.counter }}</td>
+            <td><span class="td-main">{{ row.txn.date|date:"Y/m/d" }}</span></td>
+            <td>
+              {% if row.txn.transaction_type == 'INCOME' %}
+                <span class="badge bdg-green"><span class="dot"></span>درآمد</span>
+              {% else %}
+                <span class="badge bdg-red"><span class="dot"></span>هزینه</span>
+              {% endif %}
+            </td>
+            <td class="fs-12">{{ row.cat }}</td>
+            <td class="fs-12 text-muted">{{ row.txn.fund.name|default:"—" }}</td>
+            <td class="fs-12 text-muted">{{ row.txn.reference_number|default:"—" }}</td>
+            <td>
+              {% if row.txn.transaction_type == 'INCOME' %}
+                <span class="amount-inc">{{ row.txn.amount|money }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if row.txn.transaction_type == 'EXPENSE' %}
+                <span class="amount-exp">{{ row.txn.amount|money }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <span class="{% if row.balance >= 0 %}balance-pos{% else %}balance-neg{% endif %}">
+                {{ row.balance|money }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+
+          {# ردیف جمع ─ #}
+          <tr style="background:var(--p-glow);font-weight:700">
+            <td colspan="6" style="padding:10px 14px;color:var(--p2);font-size:13px">جمع کل دوره</td>
+            <td style="padding:10px 14px;color:var(--green);font-size:13px">{{ period_income|money }}</td>
+            <td style="padding:10px 14px;color:var(--red);font-size:13px">{{ period_expense|money }}</td>
+            <td style="padding:10px 14px;color:var(--p2);font-size:13px">{{ closing_balance|money }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+        <line x1="1" y1="10" x2="23" y2="10"/>
+      </svg>
+      <h3>تراکنشی در این بازه یافت نشد</h3>
+      <p>بازه تاریخ یا صندوق را تغییر دهید.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

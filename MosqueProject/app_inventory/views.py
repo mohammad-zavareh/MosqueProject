@@ -4,7 +4,7 @@ from django.db.models import Q, Sum, Count
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import TemplateView
 from app_core.mixin import AuditViewMixin
-from .forms import InventoryTransactionForm, InventoryItemForm, SupplierForm
+from .forms import InventoryTransactionForm, InventoryItemForm, SupplierForm, InventoryCategoryForm
 from .models import InventoryTransaction, InventoryItem, InventoryCategory, Supplier
 
 
@@ -353,3 +353,140 @@ class SupplierUpdateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
             messages.success(request, f"تأمین‌کننده «{updated.name}» با موفقیت ویرایش شد.")
             return redirect("inventory:supplier_list")
         return self.render_to_response(self._ctx(form, obj))
+
+# ── لیست ────────────────────────────────────────────────
+class InventoryCategoryListView(LoginRequiredMixin, TemplateView):
+    template_name = "inv_category_list.html"
+
+    def get(self, request, *args, **kwargs):
+        qs = (
+            InventoryCategory.objects
+            .filter(is_deleted=False)
+            .annotate(item_count=Count("items", filter=Q(items__is_deleted=False)))
+            .order_by("name")
+        )
+        ctx = {
+            "categories": qs,
+            "total":      qs.count(),
+        }
+        return self.render_to_response(ctx)
+
+
+# ── ایجاد ────────────────────────────────────────────────
+class InventoryCategoryCreateView(LoginRequiredMixin, TemplateView):
+    template_name = "inv_category_form.html"
+
+    def _ctx(self, form, instance=None):
+        return {"form": form, "instance": instance}
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response(self._ctx(InventoryCategoryForm()))
+
+    def post(self, request, *args, **kwargs):
+        form = InventoryCategoryForm(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.created_by = request.user
+            obj.updated_by = request.user
+            obj.save()
+            messages.success(request, f"دسته‌بندی «{obj.name}» با موفقیت ایجاد شد.")
+            return redirect("inventory:category_list")
+        return self.render_to_response(self._ctx(form))
+
+
+# ── ویرایش ────────────────────────────────────────────────
+class InventoryCategoryUpdateView(LoginRequiredMixin, TemplateView):
+    template_name = "inv_category_form.html"
+
+    def _get_obj(self, pk):
+        return get_object_or_404(InventoryCategory, pk=pk, is_deleted=False)
+
+    def _ctx(self, form, instance):
+        return {"form": form, "instance": instance}
+
+    def get(self, request, pk, *args, **kwargs):
+        obj = self._get_obj(pk)
+        return self.render_to_response(
+            self._ctx(InventoryCategoryForm(instance=obj), obj)
+        )
+
+    def post(self, request, pk, *args, **kwargs):
+        obj  = self._get_obj(pk)
+        form = InventoryCategoryForm(request.POST, instance=obj)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.updated_by = request.user
+            updated.save()
+            messages.success(request, f"دسته‌بندی «{updated.name}» با موفقیت ویرایش شد.")
+            return redirect("inventory:category_list")
+        return self.render_to_response(self._ctx(form, obj))
+
+
+class InventoryReportView(LoginRequiredMixin, TemplateView):
+    template_name = "inventory_report.html"
+
+    def get(self, request, *args, **kwargs):
+        p = request.GET
+
+        # ── فیلتر دسته‌بندی ──────────────────────────────
+        cat_id = p.get("category", "")
+
+        items_qs = (
+            InventoryItem.objects
+            .filter(is_deleted=False)
+            .select_related("category", "supplier")
+            .annotate(
+                total_purchased=Sum(
+                    "transactions__quantity",
+                    filter=Q(transactions__transaction_type="PURCHASE",
+                             transactions__is_deleted=False)
+                ),
+                total_used=Sum(
+                    "transactions__quantity",
+                    filter=Q(transactions__transaction_type="USAGE",
+                             transactions__is_deleted=False)
+                ),
+                total_value=Sum(
+                    "transactions__total_price",
+                    filter=Q(transactions__transaction_type="PURCHASE",
+                             transactions__is_deleted=False)
+                ),
+            )
+            .order_by("category__name", "name")
+        )
+        if cat_id.isdigit():
+            items_qs = items_qs.filter(category_id=cat_id)
+
+        # ── آمار کلی ─────────────────────────────────────
+        all_items = InventoryItem.objects.filter(is_deleted=False)
+        summary = {
+            "total_items":    all_items.count(),
+            "zero_stock":     all_items.filter(current_stock__lte=0).count(),
+            "low_stock":      all_items.filter(current_stock__gt=0, current_stock__lt=5).count(),
+            "total_value":    all_items.aggregate(
+                                  v=Sum("current_stock")
+                              )["v"] or 0,
+        }
+
+        # ── پرمصرف‌ترین ──────────────────────────────────
+        top_used = (
+            InventoryItem.objects
+            .filter(is_deleted=False)
+            .annotate(used=Sum(
+                "transactions__quantity",
+                filter=Q(transactions__transaction_type="USAGE",
+                         transactions__is_deleted=False)
+            ))
+            .filter(used__isnull=False)
+            .order_by("-used")[:5]
+        )
+
+        ctx = {
+            "items":       items_qs,
+            "summary":     summary,
+            "top_used":    top_used,
+            "categories":  InventoryCategory.objects.filter(is_deleted=False).order_by("name"),
+            "f_category":  cat_id,
+            "has_filters": bool(cat_id),
+        }
+        return self.render_to_response(ctx)

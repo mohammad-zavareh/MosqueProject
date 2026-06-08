@@ -93,6 +93,8 @@
                href="{% url 'inventory:item_list' %}">لیست کالاها</a>
             <a class="sb-sub-link {% if url_name == 'supplier_list' %}active{% endif %}"
                href="{% url 'inventory:supplier_list' %}">تأمین‌کنندگان</a>
+            <a class="sb-sub-link {% if url_name == 'supplier_list' %}active{% endif %}"
+               href="{% url 'inventory:category_list' %}">دسته بندی انبار</a>
           </div>
         </div>
       </div>
@@ -118,14 +120,12 @@
         </div>
         <div class="sb-sub {% if ns == 'reports' %}open{% endif %}">
           <div class="sb-sub-inner">
-            <a class="sb-sub-link {% if url_name == 'report_income' %}active{% endif %}"
-               href="#">گزارش درآمد</a>
-            <a class="sb-sub-link {% if url_name == 'report_expense' %}active{% endif %}"
-               href="#">گزارش هزینه</a>
-            <a class="sb-sub-link {% if url_name == 'report_inventory' %}active{% endif %}"
-               href="#">گزارش انبار</a>
-            <a class="sb-sub-link {% if url_name == 'report_fund' %}active{% endif %}"
-               href="#">گردش صندوق</a>
+            <a class="sb-sub-link {% if url_name == 'finance_report' %}active{% endif %}"
+               href="{% url 'finance:finance_report' %}">گزارش مالی</a>
+            <a class="sb-sub-link {% if url_name == 'inventory_report' %}active{% endif %}"
+               href="{% url 'inventory:inventory_report' %}">گزارش انبار</a>
+            <a class="sb-sub-link {% if url_name == 'fund_flow' %}active{% endif %}"
+               href="{% url 'finance:fund_flow' %}">گردش صندوق</a>
           </div>
         </div>
       </div>

@@ -12,6 +12,9 @@ from .models import (
     FinancialTransaction, IncomeDetail, ExpenseDetail,
     IncomeCategory, ExpenseCategory,Fund, Event
 )
+import datetime
+from django.utils import timezone
+
 
 class TransactionListView(LoginRequiredMixin, ListView):
     model               = FinancialTransaction
@@ -689,3 +692,196 @@ class EventUpdateView(ItemUpdateView):
 
 
 
+class FundFlowView(LoginRequiredMixin, TemplateView):
+    template_name = "fund_flow.html"
+
+    def get(self, request, *args, **kwargs):
+        p = request.GET
+        today = timezone.now().date()
+
+        # پیش‌فرض: اول ماه جاری تا امروز
+        date_from = p.get("date_from", "") or today.replace(day=1).isoformat()
+        date_to   = p.get("date_to",   "") or today.isoformat()
+        fund_id   = p.get("fund", "")
+
+        try:
+            d_from = datetime.date.fromisoformat(date_from)
+            d_to   = datetime.date.fromisoformat(date_to)
+        except ValueError:
+            d_from = today.replace(day=1)
+            d_to   = today
+
+        funds = Fund.objects.filter(is_deleted=False).order_by("name")
+        selected_fund = None
+        if fund_id.isdigit():
+            selected_fund = funds.filter(pk=fund_id).first()
+
+        # ── تراکنش‌های بازه ──────────────────────────────
+        txn_qs = (
+            FinancialTransaction.objects
+            .filter(is_deleted=False, date__gte=d_from, date__lte=d_to)
+            .select_related("fund",
+                            "income_detail__category",
+                            "expense_detail__category")
+            .order_by("date", "created_at")
+        )
+        if selected_fund:
+            txn_qs = txn_qs.filter(fund=selected_fund)
+
+        # ── موجودی اولیه (قبل از بازه) ───────────────────
+        before_qs = FinancialTransaction.objects.filter(
+            is_deleted=False, date__lt=d_from
+        )
+        if selected_fund:
+            before_qs = before_qs.filter(fund=selected_fund)
+
+        opening_income  = before_qs.filter(transaction_type="INCOME" ).aggregate(s=Sum("amount"))["s"] or 0
+        opening_expense = before_qs.filter(transaction_type="EXPENSE").aggregate(s=Sum("amount"))["s"] or 0
+        opening_balance = opening_income - opening_expense
+
+        # ── ساخت سطرهای گردش با موجودی تجمعی ────────────
+        rows    = []
+        balance = opening_balance
+        for txn in txn_qs:
+            if txn.transaction_type == "INCOME":
+                balance += txn.amount
+                cat = txn.income_detail.category.name if hasattr(txn, "income_detail") else "—"
+            else:
+                balance -= txn.amount
+                cat = txn.expense_detail.category.name if hasattr(txn, "expense_detail") else "—"
+            rows.append({
+                "txn":     txn,
+                "cat":     cat,
+                "balance": balance,
+            })
+
+        # ── جمع‌ها ───────────────────────────────────────
+        period_income  = txn_qs.filter(transaction_type="INCOME" ).aggregate(s=Sum("amount"))["s"] or 0
+        period_expense = txn_qs.filter(transaction_type="EXPENSE").aggregate(s=Sum("amount"))["s"] or 0
+        closing_balance = opening_balance + period_income - period_expense
+
+        ctx = {
+            "rows":            rows,
+            "funds":           funds,
+            "selected_fund":   selected_fund,
+            "date_from":       date_from,
+            "date_to":         date_to,
+            "opening_balance": opening_balance,
+            "period_income":   period_income,
+            "period_expense":  period_expense,
+            "closing_balance": closing_balance,
+            "has_filters":     bool(fund_id or p.get("date_from") or p.get("date_to")),
+        }
+        return self.render_to_response(ctx)
+
+
+
+class FinanceReportView(LoginRequiredMixin, TemplateView):
+    template_name = "finance_report.html"
+
+    def get(self, request, *args, **kwargs):
+        p     = request.GET
+        today = timezone.now().date()
+
+        date_from = p.get("date_from", "") or today.replace(day=1).isoformat()
+        date_to   = p.get("date_to",   "") or today.isoformat()
+        txn_type  = p.get("type", "INCOME").upper()
+        if txn_type not in ("INCOME", "EXPENSE"):
+            txn_type = "INCOME"
+
+        try:
+            d_from = datetime.date.fromisoformat(date_from)
+            d_to   = datetime.date.fromisoformat(date_to)
+        except ValueError:
+            d_from = today.replace(day=1)
+            d_to   = today
+
+        # ── جمع کل بازه ──────────────────────────────────
+        base_qs = FinancialTransaction.objects.filter(
+            is_deleted=False,
+            transaction_type=txn_type,
+            date__gte=d_from,
+            date__lte=d_to,
+        )
+        total_amount = base_qs.aggregate(s=Sum("amount"))["s"] or 0
+        txn_count    = base_qs.count()
+
+        # ── تفکیک بر اساس دسته‌بندی ──────────────────────
+        if txn_type == "INCOME":
+            by_category = (
+                base_qs
+                .values("income_detail__category__name")
+                .annotate(total=Sum("amount"), count=Count("id"))
+                .order_by("-total")
+            )
+            cat_data = [
+                {
+                    "name":  r["income_detail__category__name"] or "بدون دسته",
+                    "total": r["total"] or 0,
+                    "count": r["count"],
+                    "pct":   round((r["total"] or 0) / total_amount * 100) if total_amount else 0,
+                }
+                for r in by_category
+            ]
+        else:
+            by_category = (
+                base_qs
+                .values("expense_detail__category__name")
+                .annotate(total=Sum("amount"), count=Count("id"))
+                .order_by("-total")
+            )
+            cat_data = [
+                {
+                    "name":  r["expense_detail__category__name"] or "بدون دسته",
+                    "total": r["total"] or 0,
+                    "count": r["count"],
+                    "pct":   round((r["total"] or 0) / total_amount * 100) if total_amount else 0,
+                }
+                for r in by_category
+            ]
+
+        # ── تفکیک ماهانه در بازه ─────────────────────────
+        MONTH_FA = ["", "فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
+                    "مهر","آبان","آذر","دی","بهمن","اسفند"]
+        monthly = []
+        cur = d_from.replace(day=1)
+        while cur <= d_to:
+            if cur.month == 12:
+                nxt = cur.replace(year=cur.year + 1, month=1)
+            else:
+                nxt = cur.replace(month=cur.month + 1)
+
+            m_total = base_qs.filter(
+                date__gte=cur,
+                date__lt=nxt,
+            ).aggregate(s=Sum("amount"))["s"] or 0
+
+            monthly.append({
+                "label": MONTH_FA[cur.month],
+                "total": float(m_total),
+                "pct":   round(float(m_total) / float(total_amount) * 100) if total_amount else 0,
+            })
+            cur = nxt
+
+        # ── آخرین تراکنش‌ها ───────────────────────────────
+        recent = (
+            base_qs
+            .select_related("fund",
+                            "income_detail__category",
+                            "expense_detail__category")
+            .order_by("-date", "-created_at")[:10]
+        )
+
+        ctx = {
+            "txn_type":    txn_type,
+            "is_income":   txn_type == "INCOME",
+            "date_from":   date_from,
+            "date_to":     date_to,
+            "total_amount":total_amount,
+            "txn_count":   txn_count,
+            "cat_data":    cat_data,
+            "monthly":     monthly,
+            "recent":      recent,
+            "has_filters": True,
+        }
+        return self.render_to_response(ctx)

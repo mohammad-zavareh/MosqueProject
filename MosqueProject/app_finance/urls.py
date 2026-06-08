@@ -75,6 +75,13 @@ urlpatterns = [
     path("event/",views.EventListView.as_view(), name="event_list"),
     path("event/create/",views.EventCreateView.as_view(), name="event_create"),
     path("event/<int:pk>/edit/",views.EventUpdateView.as_view(), name="event_update"),
+
+    path("fund-flow/",
+         views.FundFlowView.as_view(),
+         name="fund_flow"),
+    path("report/",
+         views.FinanceReportView.as_view(),
+         name="finance_report"),
 ]
 
 # نمونه لینک‌دهی در تمپلیت:

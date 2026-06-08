@@ -183,3 +183,17 @@ class SupplierForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["phone"].required   = False
         self.fields["address"].required = False
+
+
+class InventoryCategoryForm(forms.ModelForm):
+    class Meta:
+        model   = InventoryCategory
+        fields  = ["name"]
+        widgets = {
+            "name": forms.TextInput(attrs={
+                "class": "form-ctrl",
+                "placeholder": "نام دسته‌بندی انبار",
+            })
+        }
+        labels        = {"name": "نام دسته‌بندی"}
+        error_messages = {"name": {"required": "نام دسته‌بندی الزامی است."}}
