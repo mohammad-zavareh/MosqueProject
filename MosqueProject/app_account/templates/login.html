@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -5,8 +6,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ورود — سامانه مالی مسجد</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("{% static 'custom/fonts/Vazirmatn-Regular.woff2' %}") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+}
 
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("{% static  'custom/fonts/Vazirmatn-Medium.woff2' %}") format("woff2");
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("{% static  'custom/fonts/Vazirmatn-Bold.woff2' %}") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+}
 :root {
   --p1:#0f4c35; --p2:#1a6b4a; --p3:#22845c; --p4:#2ea872;
   --p-glow:rgba(26,107,74,0.13);
