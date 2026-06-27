@@ -129,6 +129,7 @@ class InventoryItemAdmin(InventoryBaseAdmin):
     list_display = (
         'id',
         'name',
+        'item_code',
         'category',
         'unit',
         'stock_status',

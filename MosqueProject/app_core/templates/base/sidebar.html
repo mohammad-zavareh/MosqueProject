@@ -104,7 +104,7 @@
     <div class="sb-section">
       <div class="sb-section-lbl">گزارش‌ها</div>
       <div class="sb-item">
-        <div class="sb-link {% if ns == 'reports' %}open{% endif %}"
+        <div class="sb-link {% if url_name == 'finance_report' or url_name == 'inventory_report' or url_name == 'fund_flow' %}open{% endif %}"
              onclick="toggleSub(this)">
           <span class="sb-icon">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -118,7 +118,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
         </div>
-        <div class="sb-sub {% if ns == 'reports' %}open{% endif %}">
+        <div class="sb-sub {% if url_name == 'finance_report' or url_name == 'inventory_report' or url_name == 'fund_flow' %}open{% endif %}">
           <div class="sb-sub-inner">
             <a class="sb-sub-link {% if url_name == 'finance_report' %}active{% endif %}"
                href="{% url 'finance:finance_report' %}">گزارش مالی</a>

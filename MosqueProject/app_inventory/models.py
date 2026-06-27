@@ -42,6 +42,13 @@ class InventoryItem(BaseModel):
 
     name = models.CharField(max_length=255)
 
+    item_code = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True,
+        verbose_name="کد کالا",
+    )
+
     category = models.ForeignKey(
         InventoryCategory,
         on_delete=models.PROTECT,

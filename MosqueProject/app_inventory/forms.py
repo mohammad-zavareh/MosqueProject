@@ -2,56 +2,55 @@ from django import forms
 from .models import InventoryTransaction, InventoryItem, InventoryCategory, Supplier
 from app_finance.models import ExpenseDetail
 
-_INPUT    = {"class": "form-ctrl"}
-_SELECT   = {"class": "form-ctrl"}
+_INPUT = {"class": "form-ctrl"}
+_SELECT = {"class": "form-ctrl"}
 _TEXTAREA = {"class": "form-ctrl", "rows": "3"}
-_NUMBER   = {"class": "form-ctrl", "type": "number", "min": "0", "step": "0.01"}
-_DATE     = {"class": "form-ctrl", "type": "date"}
+_NUMBER = {"class": "form-ctrl", "type": "number", "min": "0", "step": "0.01"}
+_DATE = {"class": "form-ctrl", "type": "date"}
 
 
 class InventoryTransactionForm(forms.ModelForm):
-
     class Meta:
-        model  = InventoryTransaction
+        model = InventoryTransaction
         fields = [
             "item", "transaction_type", "quantity",
             "unit_price", "date", "expense", "notes",
         ]
         widgets = {
-            "item":             forms.Select(attrs={**_SELECT, "id": "id_item"}),
+            "item": forms.Select(attrs={**_SELECT, "id": "id_item"}),
             "transaction_type": forms.Select(attrs={**_SELECT, "id": "id_transaction_type"}),
-            "quantity":         forms.NumberInput(attrs={
-                                    **_NUMBER,
-                                    "placeholder": "مقدار",
-                                    "id": "id_quantity",
-                                }),
-            "unit_price":       forms.NumberInput(attrs={
-                                    **_NUMBER,
-                                    "placeholder": "قیمت واحد",
-                                    "id": "id_unit_price",
-                                }),
-            "date":             forms.DateInput(attrs={**_DATE, "id": "id_date"}),
-            "expense":          forms.Select(attrs={**_SELECT, "id": "id_expense"}),
-            "notes":            forms.Textarea(attrs={
-                                    **_TEXTAREA,
-                                    "placeholder": "یادداشت (اختیاری)...",
-                                    "id": "id_notes",
-                                }),
+            "quantity": forms.NumberInput(attrs={
+                **_NUMBER,
+                "placeholder": "مقدار",
+                "id": "id_quantity",
+            }),
+            "unit_price": forms.NumberInput(attrs={
+                **_NUMBER,
+                "placeholder": "قیمت واحد",
+                "id": "id_unit_price",
+            }),
+            "date": forms.DateInput(attrs={**_DATE, "id": "id_date"}),
+            "expense": forms.Select(attrs={**_SELECT, "id": "id_expense"}),
+            "notes": forms.Textarea(attrs={
+                **_TEXTAREA,
+                "placeholder": "یادداشت (اختیاری)...",
+                "id": "id_notes",
+            }),
         }
         labels = {
-            "item":             "کالا",
+            "item": "کالا",
             "transaction_type": "نوع تراکنش",
-            "quantity":         "مقدار",
-            "unit_price":       "قیمت واحد (تومان)",
-            "date":             "تاریخ",
-            "expense":          "سند هزینه مرتبط",
-            "notes":            "یادداشت",
+            "quantity": "مقدار",
+            "unit_price": "قیمت واحد (تومان)",
+            "date": "تاریخ",
+            "expense": "سند هزینه مرتبط",
+            "notes": "یادداشت",
         }
         error_messages = {
-            "item":             {"required": "انتخاب کالا الزامی است."},
+            "item": {"required": "انتخاب کالا الزامی است."},
             "transaction_type": {"required": "نوع تراکنش الزامی است."},
-            "quantity":         {"required": "مقدار الزامی است."},
-            "date":             {"required": "تاریخ الزامی است."},
+            "quantity": {"required": "مقدار الزامی است."},
+            "date": {"required": "تاریخ الزامی است."},
         }
 
     def __init__(self, *args, **kwargs):
@@ -71,9 +70,9 @@ class InventoryTransactionForm(forms.ModelForm):
             .select_related("transaction", "category")
             .order_by("-transaction__date")
         )
-        self.fields["expense"].queryset    = expense_qs
+        self.fields["expense"].queryset = expense_qs
         self.fields["expense"].empty_label = "— بدون سند هزینه —"
-        self.fields["expense"].required    = False
+        self.fields["expense"].required = False
 
         # نمایش شماره مرجع در dropdown
         self.fields["expense"].label_from_instance = self._expense_label
@@ -90,48 +89,51 @@ class InventoryTransactionForm(forms.ModelForm):
         # total_price فقط نمایشی است و در save() محاسبه می‌شود
 
 
-
-
-
 class InventoryItemForm(forms.ModelForm):
     class Meta:
-        model  = InventoryItem
+        model = InventoryItem
         fields = [
-            "name", "category", "unit",
+            "name", "item_code", "category", "unit",
             "purchase_price", "current_stock", "supplier",
         ]
         widgets = {
-            "name":           forms.TextInput(attrs={
-                                  **_INPUT,
-                                  "placeholder": "نام کالا",
-                              }),
-            "category":       forms.Select(attrs=_SELECT),
-            "unit":           forms.TextInput(attrs={
-                                  **_INPUT,
-                                  "placeholder": "مثال: عدد، کیلوگرم، متر",
-                              }),
+            "name": forms.TextInput(attrs={
+                **_INPUT,
+                "placeholder": "نام کالا",
+            }),
+            "item_code": forms.TextInput(attrs={  # ← جدید
+                **_INPUT,
+                "placeholder": "مثال: 4564",
+            }),
+            "category": forms.Select(attrs=_SELECT),
+            "unit": forms.TextInput(attrs={
+                **_INPUT,
+                "placeholder": "مثال: عدد، کیلوگرم، متر",
+            }),
             "purchase_price": forms.NumberInput(attrs={
-                                  **_NUMBER,
-                                  "placeholder": "قیمت خرید",
-                              }),
-            "current_stock":  forms.NumberInput(attrs={
-                                  **_NUMBER,
-                                  "placeholder": "موجودی اولیه",
-                              }),
-            "supplier":       forms.Select(attrs=_SELECT),
+                **_NUMBER,
+                "placeholder": "قیمت خرید",
+            }),
+            "current_stock": forms.NumberInput(attrs={
+                **_NUMBER,
+                "placeholder": "موجودی اولیه",
+            }),
+            "supplier": forms.Select(attrs=_SELECT),
         }
         labels = {
-            "name":           "نام کالا",
-            "category":       "دسته‌بندی",
-            "unit":           "واحد",
+            "name": "نام کالا",
+            "item_code": "کد کالا",
+            "category": "دسته‌بندی",
+            "unit": "واحد",
             "purchase_price": "قیمت خرید (تومان)",
-            "current_stock":  "موجودی اولیه",
-            "supplier":       "تأمین‌کننده",
+            "current_stock": "موجودی اولیه",
+            "supplier": "تأمین‌کننده",
         }
         error_messages = {
-            "name":     {"required": "نام کالا الزامی است."},
+            "name": {"required": "نام کالا الزامی است."},
+            "item_code": {"unique": "این کد کالا قبلاً استفاده شده."},
             "category": {"required": "انتخاب دسته‌بندی الزامی است."},
-            "unit":     {"required": "واحد الزامی است."},
+            "unit": {"required": "واحد الزامی است."},
         }
 
     def __init__(self, *args, **kwargs):
@@ -148,31 +150,30 @@ class InventoryItemForm(forms.ModelForm):
             .order_by("name")
         )
         self.fields["supplier"].empty_label = "— بدون تأمین‌کننده —"
-        self.fields["supplier"].required    = False
-
+        self.fields["supplier"].required = False
 
 
 class SupplierForm(forms.ModelForm):
     class Meta:
-        model  = Supplier
+        model = Supplier
         fields = ["name", "phone", "address"]
         widgets = {
-            "name":    forms.TextInput(attrs={
-                           **_INPUT,
-                           "placeholder": "نام تأمین‌کننده",
-                       }),
-            "phone":   forms.TextInput(attrs={
-                           **_INPUT,
-                           "placeholder": "مثال: ۰۹۱۲۳۴۵۶۷۸۹",
-                       }),
+            "name": forms.TextInput(attrs={
+                **_INPUT,
+                "placeholder": "نام تأمین‌کننده",
+            }),
+            "phone": forms.TextInput(attrs={
+                **_INPUT,
+                "placeholder": "مثال: ۰۹۱۲۳۴۵۶۷۸۹",
+            }),
             "address": forms.Textarea(attrs={
-                           **_TEXTAREA,
-                           "placeholder": "آدرس (اختیاری)...",
-                       }),
+                **_TEXTAREA,
+                "placeholder": "آدرس (اختیاری)...",
+            }),
         }
         labels = {
-            "name":    "نام تأمین‌کننده",
-            "phone":   "شماره تماس",
+            "name": "نام تأمین‌کننده",
+            "phone": "شماره تماس",
             "address": "آدرس",
         }
         error_messages = {
@@ -181,19 +182,19 @@ class SupplierForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["phone"].required   = False
+        self.fields["phone"].required = False
         self.fields["address"].required = False
 
 
 class InventoryCategoryForm(forms.ModelForm):
     class Meta:
-        model   = InventoryCategory
-        fields  = ["name"]
+        model = InventoryCategory
+        fields = ["name"]
         widgets = {
             "name": forms.TextInput(attrs={
                 "class": "form-ctrl",
                 "placeholder": "نام دسته‌بندی انبار",
             })
         }
-        labels        = {"name": "نام دسته‌بندی"}
+        labels = {"name": "نام دسته‌بندی"}
         error_messages = {"name": {"required": "نام دسته‌بندی الزامی است."}}
