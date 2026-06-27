@@ -55,4 +55,15 @@ urlpatterns = [
     path("report/",
          views.InventoryReportView.as_view(),
          name="inventory_report"),
+
+    path(
+        "ajax/items/",
+        views.AjaxItemSearchView.as_view(),
+        name="ajax_items",
+    ),
+    path(
+        "ajax/expenses/",
+        views.AjaxExpenseSearchView.as_view(),
+        name="ajax_expenses",
+    ),
 ]

@@ -1,8 +1,9 @@
 from django.contrib import messages
+from django.http import JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, Sum, Count
 from django.shortcuts import get_object_or_404, redirect
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, View
 from app_core.mixin import AuditViewMixin
 from .forms import InventoryTransactionForm, InventoryItemForm, SupplierForm, InventoryCategoryForm
 from .models import InventoryTransaction, InventoryItem, InventoryCategory, Supplier
@@ -490,3 +491,72 @@ class InventoryReportView(LoginRequiredMixin, TemplateView):
             "has_filters": bool(cat_id),
         }
         return self.render_to_response(ctx)
+
+
+
+
+class AjaxItemSearchView(LoginRequiredMixin, View):
+    """
+    GET /inventory/ajax/items/?q=ITM-001
+    جستجو بر اساس item_code یا نام کالا
+    """
+    def get(self, request):
+        q = request.GET.get("q", "").strip()
+        qs = (
+            InventoryItem.objects
+            .filter(is_deleted=False)
+            .select_related("category")
+        )
+        if q:
+            qs = qs.filter(
+                Q(item_code__icontains=q) | Q(name__icontains=q)
+            )
+        qs = qs.order_by("item_code")[:20]
+
+        results = [
+            {
+                "id":           item.pk,
+                "item_code":    item.item_code,
+                "name":         item.name,
+                "unit":         item.unit,
+                "purchase_price": str(item.purchase_price),
+                "current_stock":  str(item.current_stock),
+                "category":     item.category.name,
+            }
+            for item in qs
+        ]
+        return JsonResponse({"results": results})
+
+
+class AjaxExpenseSearchView(LoginRequiredMixin, View):
+    """
+    GET /inventory/ajax/expenses/?q=REF-001
+    جستجو بر اساس reference_number
+    """
+    def get(self, request):
+        from app_finance.models import ExpenseDetail
+        q = request.GET.get("q", "").strip()
+        qs = (
+            ExpenseDetail.objects
+            .filter(is_deleted=False)
+            .select_related("transaction", "category")
+            .order_by("-transaction__date")
+        )
+        if q:
+            qs = qs.filter(
+                Q(transaction__reference_number__icontains=q)
+                | Q(category__name__icontains=q)
+            )
+        qs = qs[:20]
+
+        results = []
+        for exp in qs:
+            txn = exp.transaction
+            results.append({
+                "id":       exp.pk,
+                "ref":      txn.reference_number or f"#{txn.pk}",
+                "date":     txn.date.strftime("%Y/%m/%d") if txn.date else "—",
+                "amount":   f"{txn.amount:,.0f}",
+                "category": exp.category.name if exp.category_id else "—",
+            })
+        return JsonResponse({"results": results})

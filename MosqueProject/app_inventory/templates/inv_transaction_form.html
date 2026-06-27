@@ -27,6 +27,126 @@
 .total-lbl{font-size:12px;font-weight:600;color:var(--p2)}
 .total-val{font-size:20px;font-weight:800;color:var(--p2)}
 
+/* ══ Searchable Dropdown ══ */
+.sd-wrap{position:relative}
+
+.sd-trigger{
+  display:flex;align-items:center;gap:8px;
+  width:100%;padding:9px 12px;
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--r-sm);cursor:pointer;
+  font-family:var(--font);font-size:13px;color:var(--txt);
+  transition:border-color var(--t),box-shadow var(--t);
+  text-align:right;
+}
+.sd-trigger:focus,.sd-trigger.open{
+  border-color:var(--p2);
+  box-shadow:0 0 0 3px var(--p-glow);
+  outline:none;
+}
+.sd-trigger-placeholder{color:var(--txt3);flex:1}
+.sd-trigger-text{flex:1;text-align:right;display:flex;align-items:center;gap:6px;min-width:0}
+.sd-trigger-name{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-weight:600;color:var(--txt);
+}
+.sd-trigger-badge{
+  font-size:10px;font-weight:700;padding:1px 7px;
+  border-radius:10px;background:var(--p-glow);color:var(--p2);
+  flex-shrink:0;font-family:monospace;white-space:nowrap;
+}
+.sd-trigger-badge.ref{
+  background:var(--blue-bg);color:var(--blue-txt);
+}
+.sd-trigger-arr{
+  display:flex;flex-shrink:0;color:var(--txt3);
+  transition:transform .2s ease;
+}
+.sd-trigger.open .sd-trigger-arr{transform:rotate(180deg)}
+.sd-clear{
+  display:none;flex-shrink:0;
+  background:none;border:none;color:var(--txt3);
+  cursor:pointer;padding:2px;line-height:0;
+  transition:color var(--t);
+}
+.sd-clear:hover{color:var(--red)}
+.sd-clear.show{display:flex}
+
+.sd-panel{
+  display:none;position:absolute;
+  top:calc(100% + 4px);right:0;left:0;z-index:300;
+  background:var(--surface);border:1.5px solid var(--p2);
+  border-radius:var(--r-sm);box-shadow:var(--shadow-md);
+  overflow:hidden;
+}
+.sd-panel.open{display:block}
+
+.sd-search-wrap{
+  padding:8px 10px;
+  border-bottom:1px solid var(--border);
+  position:relative;
+}
+.sd-search-wrap svg{
+  position:absolute;top:50%;transform:translateY(-50%);
+  right:20px;color:var(--txt3);pointer-events:none;
+}
+.sd-search{
+  width:100%;padding:7px 34px 7px 10px;
+  border:1.5px solid var(--border);border-radius:var(--r-sm);
+  font-family:var(--font);font-size:12.5px;color:var(--txt);
+  background:var(--surface2);outline:none;
+  transition:border-color var(--t);
+}
+.sd-search:focus{border-color:var(--p2)}
+
+.sd-list{max-height:260px;overflow-y:auto}
+
+.sd-item{
+  display:flex;flex-direction:column;gap:3px;
+  padding:9px 13px;cursor:pointer;
+  border-bottom:1px solid var(--border);
+  transition:background var(--t);
+}
+.sd-item:last-child{border-bottom:none}
+.sd-item:hover,.sd-item.kbd-active{background:var(--p-glow)}
+
+.sd-item-main{
+  display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:600;color:var(--txt);
+}
+.sd-item-code{
+  font-size:10.5px;font-weight:700;
+  font-family:monospace;padding:1px 6px;
+  border-radius:8px;background:var(--p-glow);color:var(--p2);
+  flex-shrink:0;
+}
+.sd-item-ref{
+  font-size:10.5px;font-weight:700;
+  font-family:monospace;padding:1px 6px;
+  border-radius:8px;background:var(--blue-bg);color:var(--blue-txt);
+  flex-shrink:0;
+}
+.sd-item-sub{
+  display:flex;gap:10px;flex-wrap:wrap;
+  font-size:11px;color:var(--txt3);
+}
+
+.sd-empty{
+  padding:24px;text-align:center;
+  font-size:12.5px;color:var(--txt3);
+}
+.sd-loading{
+  padding:16px;text-align:center;
+  font-size:12.5px;color:var(--txt3);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.sd-spinner{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--border);border-top-color:var(--p2);
+  animation:spin .7s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
 /* info chip کالا */
 .item-info{
   display:none;
@@ -78,30 +198,86 @@
         <form method="post" novalidate id="txnForm">
           {% csrf_token %}
 
+          {# فیلدهای hidden — مقدار واقعی که جنگو پردازش می‌کند #}
+          <input type="hidden" name="{{ form.item.html_name }}"    id="hiddenItem">
+          <input type="hidden" name="{{ form.expense.html_name }}" id="hiddenExpense">
+
           {# ── ROW 1: کالا + نوع تراکنش ── #}
           <div class="row">
             <div class="col-12 col-md-6">
               <div class="form-group {% if form.item.errors %}has-err{% endif %}">
-                <label class="form-lbl" for="{{ form.item.id_for_label }}">
+                <label class="form-lbl">
                   <span class="req">* </span>{{ form.item.label }}
                 </label>
-                {{ form.item }}
+
+                {# Searchable dropdown کالا #}
+                <div class="sd-wrap" id="sdItemWrap">
+                  <button type="button" class="sd-trigger" id="sdItemTrigger"
+                          onclick="sdToggle('item')">
+                    <span id="sdItemPlaceholder" class="sd-trigger-placeholder">— انتخاب کالا —</span>
+                    <span id="sdItemText"        class="sd-trigger-text" style="display:none">
+                      <span id="sdItemBadge" class="sd-trigger-badge"></span>
+                      <span id="sdItemName"  class="sd-trigger-name"></span>
+                    </span>
+                    <button type="button" class="sd-clear" id="sdItemClear"
+                            onclick="event.stopPropagation();sdClear('item')">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6"  y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                    <span class="sd-trigger-arr">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </span>
+                  </button>
+
+                  <div class="sd-panel" id="sdItemPanel">
+                    <div class="sd-search-wrap">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2"
+                           stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      </svg>
+                      <input type="text" class="sd-search" id="sdItemSearch"
+                             placeholder="جستجو با کد کالا یا نام..."
+                             autocomplete="off">
+                    </div>
+                    <div class="sd-list" id="sdItemList">
+                      <div class="sd-empty">برای جستجو تایپ کنید</div>
+                    </div>
+                  </div>
+                </div>
+
                 {# اطلاعات سریع کالا #}
                 <div class="item-info" id="itemInfo">
                   <span class="ii-chip" id="infoUnit">—</span>
                   <span class="ii-chip" id="infoStock">موجودی: —</span>
                   <span class="ii-chip" id="infoPrice">قیمت پیش‌فرض: —</span>
                 </div>
-                {% for e in form.item.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+
+                {% for e in form.item.errors %}
+                  <div class="field-err">{{ e }}</div>
+                {% endfor %}
+                <div class="field-err" id="itemErr" style="display:none">
+                  انتخاب کالا الزامی است.
+                </div>
               </div>
             </div>
+
             <div class="col-12 col-md-6">
               <div class="form-group {% if form.transaction_type.errors %}has-err{% endif %}">
                 <label class="form-lbl" for="{{ form.transaction_type.id_for_label }}">
                   <span class="req">* </span>{{ form.transaction_type.label }}
                 </label>
                 {{ form.transaction_type }}
-                {% for e in form.transaction_type.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+                {% for e in form.transaction_type.errors %}
+                  <div class="field-err">{{ e }}</div>
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -114,7 +290,9 @@
                   <span class="req">* </span>{{ form.quantity.label }}
                 </label>
                 {{ form.quantity }}
-                {% for e in form.quantity.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+                {% for e in form.quantity.errors %}
+                  <div class="field-err">{{ e }}</div>
+                {% endfor %}
               </div>
             </div>
             <div class="col-12 col-md-4">
@@ -123,7 +301,9 @@
                   {{ form.unit_price.label }}
                 </label>
                 {{ form.unit_price }}
-                {% for e in form.unit_price.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+                {% for e in form.unit_price.errors %}
+                  <div class="field-err">{{ e }}</div>
+                {% endfor %}
               </div>
             </div>
             <div class="col-12 col-md-4">
@@ -132,7 +312,9 @@
                   <span class="req">* </span>{{ form.date.label }}
                 </label>
                 {{ form.date }}
-                {% for e in form.date.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+                {% for e in form.date.errors %}
+                  <div class="field-err">{{ e }}</div>
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -147,14 +329,57 @@
           <div class="row" style="margin-top:16px">
             <div class="col-12">
               <div class="form-group {% if form.expense.errors %}has-err{% endif %}">
-                <label class="form-lbl" for="{{ form.expense.id_for_label }}">
-                  {{ form.expense.label }}
-                </label>
-                {{ form.expense }}
+                <label class="form-lbl">{{ form.expense.label }}</label>
+
+                {# Searchable dropdown سند هزینه #}
+                <div class="sd-wrap" id="sdExpenseWrap">
+                  <button type="button" class="sd-trigger" id="sdExpenseTrigger"
+                          onclick="sdToggle('expense')">
+                    <span id="sdExpensePlaceholder" class="sd-trigger-placeholder">— بدون سند هزینه —</span>
+                    <span id="sdExpenseText"        class="sd-trigger-text" style="display:none">
+                      <span id="sdExpenseBadge" class="sd-trigger-badge ref"></span>
+                      <span id="sdExpenseName"  class="sd-trigger-name"></span>
+                    </span>
+                    <button type="button" class="sd-clear" id="sdExpenseClear"
+                            onclick="event.stopPropagation();sdClear('expense')">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6"  y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                    <span class="sd-trigger-arr">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </span>
+                  </button>
+
+                  <div class="sd-panel" id="sdExpensePanel">
+                    <div class="sd-search-wrap">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2"
+                           stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      </svg>
+                      <input type="text" class="sd-search" id="sdExpenseSearch"
+                             placeholder="جستجو با شماره مرجع..."
+                             autocomplete="off">
+                    </div>
+                    <div class="sd-list" id="sdExpenseList">
+                      <div class="sd-empty">برای جستجو تایپ کنید</div>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="fs-11 text-muted" style="margin-top:4px">
                   اختیاری — برای لینک کردن به سند هزینه مالی
                 </div>
-                {% for e in form.expense.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+                {% for e in form.expense.errors %}
+                  <div class="field-err">{{ e }}</div>
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -163,9 +388,13 @@
           <div class="row">
             <div class="col-12">
               <div class="form-group {% if form.notes.errors %}has-err{% endif %}">
-                <label class="form-lbl" for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                <label class="form-lbl" for="{{ form.notes.id_for_label }}">
+                  {{ form.notes.label }}
+                </label>
                 {{ form.notes }}
-                {% for e in form.notes.errors %}<div class="field-err">{{ e }}</div>{% endfor %}
+                {% for e in form.notes.errors %}
+                  <div class="field-err">{{ e }}</div>
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -228,7 +457,7 @@
       </div>
 
       {% if instance %}
-      <div class="card" style="background:var(--surface2);margin-top:0">
+      <div class="card" style="background:var(--surface2)">
         <div class="sec-title" style="margin-bottom:12px;font-size:13px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                stroke="var(--p2)" stroke-width="2.2"
@@ -268,56 +497,293 @@
 
 {% block extra_js %}
 <script>
-/* اطلاعات کالاها از view */
-var ITEMS = {{ items_json|safe }};
+/* ══════════════════════════════════════════════════════
+   URL های Ajax
+══════════════════════════════════════════════════════ */
+var AJAX_ITEMS_URL   = "{% url 'inventory:ajax_items' %}";
+var AJAX_EXPENSE_URL = "{% url 'inventory:ajax_expenses' %}";
 
-var itemSel   = document.getElementById('id_item');
-var qtyInput  = document.getElementById('id_quantity');
-var priceInput= document.getElementById('id_unit_price');
-var totalDisp = document.getElementById('totalDisplay');
-var itemInfo  = document.getElementById('itemInfo');
-var infoUnit  = document.getElementById('infoUnit');
-var infoStock = document.getElementById('infoStock');
-var infoPrice = document.getElementById('infoPrice');
+/* ══════════════════════════════════════════════════════
+   محاسبه مجموع
+══════════════════════════════════════════════════════ */
+var qtyInput   = document.getElementById('id_quantity');
+var priceInput = document.getElementById('id_unit_price');
+var totalDisp  = document.getElementById('totalDisplay');
 
-/* آپدیت اطلاعات کالا */
-function updateItemInfo() {
-  var id   = itemSel.value;
-  var data = ITEMS[id];
-  if (!data) {
-    itemInfo.classList.remove('show');
-    return;
-  }
-  infoUnit.textContent  = 'واحد: ' + data.unit;
-  infoStock.textContent = 'موجودی: ' + parseFloat(data.current_stock).toLocaleString();
-  infoPrice.textContent = 'قیمت پیش‌فرض: ' + parseFloat(data.purchase_price).toLocaleString();
-  itemInfo.classList.add('show');
-
-  /* autofill قیمت واحد فقط اگه خالی باشه */
-  if (!priceInput.value && data.purchase_price && parseFloat(data.purchase_price) > 0) {
-    priceInput.value = data.purchase_price;
-    calcTotal();
-  }
-}
-
-/* محاسبه مجموع */
 function calcTotal() {
   var qty   = parseFloat(qtyInput.value)   || 0;
   var price = parseFloat(priceInput.value) || 0;
   var total = qty * price;
-  if (total > 0) {
-    totalDisp.textContent = total.toLocaleString('fa-IR') + ' تومان';
-  } else {
-    totalDisp.textContent = '—';
-  }
+  totalDisp.textContent = total > 0
+    ? total.toLocaleString('fa-IR') + ' تومان'
+    : '—';
+}
+if (qtyInput)   qtyInput.addEventListener('input', calcTotal);
+if (priceInput) priceInput.addEventListener('input', calcTotal);
+calcTotal();
+
+/* ══════════════════════════════════════════════════════
+   اطلاعات سریع کالا
+══════════════════════════════════════════════════════ */
+function showItemInfo(unit, stock, price) {
+  document.getElementById('infoUnit').textContent  = 'واحد: ' + unit;
+  document.getElementById('infoStock').textContent = 'موجودی: ' + parseFloat(stock).toLocaleString();
+  document.getElementById('infoPrice').textContent = 'قیمت پیش‌فرض: ' + parseFloat(price).toLocaleString();
+  document.getElementById('itemInfo').classList.add('show');
+}
+function hideItemInfo() {
+  document.getElementById('itemInfo').classList.remove('show');
 }
 
-itemSel.addEventListener('change',   updateItemInfo);
-qtyInput.addEventListener('input',   calcTotal);
-priceInput.addEventListener('input', calcTotal);
+/* ══════════════════════════════════════════════════════
+   Searchable Dropdown Engine
+══════════════════════════════════════════════════════ */
+var SD = {};
 
-/* مقدار اولیه در ویرایش */
-updateItemInfo();
-calcTotal();
+function sdInit(key, cfg) {
+  SD[key] = {
+    url:         cfg.url,
+    hidden:      document.getElementById(cfg.hiddenId),
+    trigger:     document.getElementById('sd' + _cap(key) + 'Trigger'),
+    panel:       document.getElementById('sd' + _cap(key) + 'Panel'),
+    search:      document.getElementById('sd' + _cap(key) + 'Search'),
+    list:        document.getElementById('sd' + _cap(key) + 'List'),
+    placeholder: document.getElementById('sd' + _cap(key) + 'Placeholder'),
+    textWrap:    document.getElementById('sd' + _cap(key) + 'Text'),
+    badge:       document.getElementById('sd' + _cap(key) + 'Badge'),
+    nameEl:      document.getElementById('sd' + _cap(key) + 'Name'),
+    clearBtn:    document.getElementById('sd' + _cap(key) + 'Clear'),
+    renderFn:    cfg.renderFn,
+    onSelectFn:  cfg.onSelect || function(){},
+    debounce:    null,
+    isOpen:      false,
+  };
+
+  /* کلیک بیرون = بستن */
+  document.addEventListener('click', function(e) {
+    var wrap = document.getElementById('sd' + _cap(key) + 'Wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      _sdClose(key);
+    }
+  });
+
+  /* جستجو با debounce */
+  SD[key].search.addEventListener('input', function() {
+    clearTimeout(SD[key].debounce);
+    var q = this.value.trim();
+    SD[key].debounce = setTimeout(function() {
+      _sdFetch(key, q);
+    }, 320);
+  });
+
+  /* کیبورد */
+  SD[key].search.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { _sdClose(key); return; }
+    if (e.key === 'ArrowDown') { _sdMoveFocus(key, 1);  e.preventDefault(); return; }
+    if (e.key === 'ArrowUp')   { _sdMoveFocus(key, -1); e.preventDefault(); return; }
+    if (e.key === 'Enter') {
+      var active = SD[key].list.querySelector('.sd-item.kbd-active');
+      if (active) { active.click(); e.preventDefault(); }
+    }
+  });
+}
+
+function _cap(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/* ── باز/بسته کردن ── */
+function sdToggle(key) {
+  SD[key].isOpen ? _sdClose(key) : _sdOpen(key);
+}
+
+function _sdOpen(key) {
+  Object.keys(SD).forEach(function(k) { if (k !== key) _sdClose(k); });
+  SD[key].isOpen = true;
+  SD[key].trigger.classList.add('open');
+  SD[key].panel.classList.add('open');
+  SD[key].search.value = '';
+  setTimeout(function() { SD[key].search.focus(); }, 50);
+  _sdFetch(key, '');
+}
+
+function _sdClose(key) {
+  if (!SD[key] || !SD[key].isOpen) return;
+  SD[key].isOpen = false;
+  SD[key].trigger.classList.remove('open');
+  SD[key].panel.classList.remove('open');
+}
+
+/* ── fetch ── */
+function _sdFetch(key, q) {
+  SD[key].list.innerHTML =
+    '<div class="sd-loading"><div class="sd-spinner"></div>در حال بارگذاری...</div>';
+
+  fetch(SD[key].url + '?q=' + encodeURIComponent(q), {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { _sdRender(key, data.results); })
+  .catch(function() {
+    SD[key].list.innerHTML = '<div class="sd-empty">خطا در بارگذاری</div>';
+  });
+}
+
+/* ── رندر لیست ── */
+function _sdRender(key, results) {
+  if (!results || !results.length) {
+    SD[key].list.innerHTML = '<div class="sd-empty">نتیجه‌ای یافت نشد</div>';
+    return;
+  }
+  SD[key].list.innerHTML = '';
+  results.forEach(function(item) {
+    var el = document.createElement('div');
+    el.className = 'sd-item';
+    el.innerHTML = SD[key].renderFn(item);
+    el.addEventListener('click', function() { _sdSelect(key, item); });
+    SD[key].list.appendChild(el);
+  });
+}
+
+/* ── انتخاب آیتم ── */
+function _sdSelect(key, item) {
+  /* ۱. اول onSelect صدا بزن تا displayName و badge آماده بشن */
+  var displayName  = '';
+  var displayBadge = '';
+
+  if (key === 'item') {
+    displayBadge = item.item_code || '';
+    displayName  = item.name      || '';
+    /* اطلاعات سریع */
+    showItemInfo(item.unit, item.current_stock, item.purchase_price);
+    /* autofill قیمت */
+    if (!priceInput.value && parseFloat(item.purchase_price) > 0) {
+      priceInput.value = item.purchase_price;
+      calcTotal();
+    }
+    document.getElementById('itemErr').style.display = 'none';
+  } else if (key === 'expense') {
+    displayBadge = item.ref      || '';
+    displayName  = item.category + ' — ' + item.date;
+  }
+
+  /* ۲. مقدار hidden رو ست کن */
+  SD[key].hidden.value = item.id;
+
+  /* ۳. UI رو آپدیت کن */
+  SD[key].placeholder.style.display = 'none';
+  SD[key].textWrap.style.display    = '';
+  SD[key].badge.textContent         = displayBadge;
+  SD[key].nameEl.textContent        = displayName;
+  SD[key].clearBtn.classList.add('show');
+
+  /* ۴. ببند */
+  _sdClose(key);
+}
+
+/* ── پاک کردن ── */
+function sdClear(key) {
+  SD[key].hidden.value = '';
+  SD[key].placeholder.style.display = '';
+  SD[key].textWrap.style.display    = 'none';
+  SD[key].badge.textContent         = '';
+  SD[key].nameEl.textContent        = '';
+  SD[key].clearBtn.classList.remove('show');
+  if (key === 'item') { hideItemInfo(); }
+}
+
+/* ── ناوبری کیبورد ── */
+function _sdMoveFocus(key, dir) {
+  var items = Array.from(SD[key].list.querySelectorAll('.sd-item'));
+  if (!items.length) return;
+  var cur = items.findIndex(function(el) { return el.classList.contains('kbd-active'); });
+  items.forEach(function(el) { el.classList.remove('kbd-active'); });
+  var next = Math.max(0, Math.min(items.length - 1, cur + dir));
+  items[next].classList.add('kbd-active');
+  items[next].scrollIntoView({ block: 'nearest' });
+}
+
+/* ══════════════════════════════════════════════════════
+   راه‌اندازی
+══════════════════════════════════════════════════════ */
+sdInit('item', {
+  url:      AJAX_ITEMS_URL,
+  hiddenId: 'hiddenItem',
+  renderFn: function(item) {
+    return '<div class="sd-item-main">' +
+             '<span class="sd-item-code">' + (item.item_code || '') + '</span>' +
+             '<span>' + (item.name || '') + '</span>' +
+           '</div>' +
+           '<div class="sd-item-sub">' +
+             '<span>دسته: '    + (item.category || '—') + '</span>' +
+             '<span>واحد: '    + (item.unit     || '—') + '</span>' +
+             '<span>موجودی: '  + parseFloat(item.current_stock || 0).toLocaleString() + '</span>' +
+           '</div>';
+  },
+});
+
+sdInit('expense', {
+  url:      AJAX_EXPENSE_URL,
+  hiddenId: 'hiddenExpense',
+  renderFn: function(exp) {
+    return '<div class="sd-item-main">' +
+             '<span class="sd-item-ref">' + (exp.ref || '') + '</span>' +
+             '<span>' + (exp.category || '—') + '</span>' +
+           '</div>' +
+           '<div class="sd-item-sub">' +
+             '<span>تاریخ: ' + (exp.date   || '—') + '</span>' +
+             '<span>مبلغ: '  + (exp.amount || '—') + ' تومان</span>' +
+           '</div>';
+  },
+});
+
+/* ══════════════════════════════════════════════════════
+   پیش‌لود در حالت ویرایش
+══════════════════════════════════════════════════════ */
+{% if instance and instance.item_id %}
+(function() {
+  var itemId    = "{{ instance.item_id }}";
+  var itemCode  = "{{ instance.item.item_code|default:'' }}";
+  var itemName  = "{{ instance.item.name|default:'' }}";
+  var itemUnit  = "{{ instance.item.unit|default:'' }}";
+  var itemStock = "{{ instance.item.current_stock|default:'0' }}";
+  var itemPrice = "{{ instance.item.purchase_price|default:'0' }}";
+
+  SD['item'].hidden.value            = itemId;
+  SD['item'].placeholder.style.display = 'none';
+  SD['item'].textWrap.style.display  = '';
+  SD['item'].badge.textContent       = itemCode;
+  SD['item'].nameEl.textContent      = itemName;
+  SD['item'].clearBtn.classList.add('show');
+  showItemInfo(itemUnit, itemStock, itemPrice);
+})();
+{% endif %}
+
+{% if instance and instance.expense_id %}
+(function() {
+  var expId     = "{{ instance.expense_id }}";
+  var expRef    = "{{ instance.expense.transaction.reference_number|default:'' }}";
+  var expCat    = "{{ instance.expense.category.name|default:'' }}";
+  var expDate   = "{{ instance.expense.transaction.date|date:'Y/m/d'|default:'' }}";
+
+  SD['expense'].hidden.value            = expId;
+  SD['expense'].placeholder.style.display = 'none';
+  SD['expense'].textWrap.style.display  = '';
+  SD['expense'].badge.textContent       = expRef;
+  SD['expense'].nameEl.textContent      = expCat + ' — ' + expDate;
+  SD['expense'].clearBtn.classList.add('show');
+})();
+{% endif %}
+
+/* ══════════════════════════════════════════════════════
+   Validation قبل از submit
+══════════════════════════════════════════════════════ */
+document.getElementById('txnForm').addEventListener('submit', function(e) {
+  if (!document.getElementById('hiddenItem').value) {
+    e.preventDefault();
+    document.getElementById('itemErr').style.display = 'flex';
+    document.getElementById('sdItemTrigger').focus();
+  }
+});
 </script>
 {% endblock %}
