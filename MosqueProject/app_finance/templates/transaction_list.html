@@ -204,6 +204,16 @@
           </a>
         </span>
       {% endif %}
+      {% if f_event %}
+        <span class="f-badge">
+          مناسبت انتخابی
+          <a href="?q={{ f_q }}&type={{ f_type }}&fund={{ f_fund }}&event={{ f_event }}&date_from={{ f_date_from }}&date_to={{ f_date_to }}&amount_min={{ f_amount_min }}&amount_max={{ f_amount_max }}">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </a>
+        </span>
+      {% endif %}
       {% if f_date_from or f_date_to %}
         <span class="f-badge">
           تاریخ: {{ f_date_from|default:"—" }} تا {{ f_date_to|default:"—" }}
@@ -286,6 +296,20 @@
                   <option value="{{ fund.pk }}"
                     {% if f_fund == fund.pk|stringformat:"s" %}selected{% endif %}>
                     {{ fund.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="form-group">
+              <label class="form-lbl">مناسبت</label>
+              <select name="event" class="form-ctrl">
+                <option value="">— همه مناسبت‌ها —</option>
+                {% for event in events %}
+                  <option value="{{ event.pk }}"
+                    {% if f_event == event.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ event.name }}
                   </option>
                 {% endfor %}
               </select>
@@ -389,7 +413,7 @@
             <th style="width:46px">#</th>
             <th>
               <a class="sort-link"
-                 href="?q={{ f_q }}&type={{ f_type }}&fund={{ f_fund }}&date_from={{ f_date_from }}&date_to={{ f_date_to }}&amount_min={{ f_amount_min }}&amount_max={{ f_amount_max }}&ordering={% if f_ordering == '-date' %}date{% else %}-date{% endif %}">
+                 href="?q={{ f_q }}&type={{ f_type }}&fund={{ f_fund }}&event={{ f_event }}&date_from={{ f_date_from }}&date_to={{ f_date_to }}&amount_min={{ f_amount_min }}&amount_max={{ f_amount_max }}&ordering={% if f_ordering == '-date' %}date{% else %}-date{% endif %}">
                 تاریخ
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -406,7 +430,7 @@
             <th>نوع</th>
             <th>
               <a class="sort-link"
-                 href="?q={{ f_q }}&type={{ f_type }}&fund={{ f_fund }}&date_from={{ f_date_from }}&date_to={{ f_date_to }}&amount_min={{ f_amount_min }}&amount_max={{ f_amount_max }}&ordering={% if f_ordering == '-amount' %}amount{% else %}-amount{% endif %}">
+                 href="?q={{ f_q }}&type={{ f_type }}&fund={{ f_fund }}&event={{ f_event }}&date_from={{ f_date_from }}&date_to={{ f_date_to }}&amount_min={{ f_amount_min }}&amount_max={{ f_amount_max }}&ordering={% if f_ordering == '-amount' %}amount{% else %}-amount{% endif %}">
                 مبلغ
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2.5" stroke-linecap="round">

@@ -61,6 +61,10 @@ class TransactionListView(LoginRequiredMixin, ListView):
         if fund_id.isdigit():
             qs = qs.filter(fund_id=fund_id)
 
+        event_id = p.get("event", "")
+        if event_id.isdigit():
+            qs = qs.filter(event_id=event_id)
+
         date_from = p.get("date_from", "").strip()
         date_to   = p.get("date_to",   "").strip()
         if date_from:
@@ -96,9 +100,11 @@ class TransactionListView(LoginRequiredMixin, ListView):
         ctx["f_amount_min"] = p.get("amount_min",  "").strip()
         ctx["f_amount_max"] = p.get("amount_max",  "").strip()
         ctx["f_ordering"]   = p.get("ordering",    "")
+        ctx["events"] = Event.objects.only("id", "name").order_by("name")
+        ctx["f_event"] = p.get("event", "")
 
         ctx["has_filters"] = any([
-            ctx["f_q"], ctx["f_type"], ctx["f_fund"],
+            ctx["f_q"], ctx["f_type"], ctx["f_fund"],ctx["f_event"],
             ctx["f_date_from"], ctx["f_date_to"],
             ctx["f_amount_min"], ctx["f_amount_max"],
         ])
