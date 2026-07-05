@@ -177,7 +177,7 @@
                     <option value="">— همه دسته‌ها —</option>
                     {% for cat in categories %}
                     <option value="{{ cat.pk }}"
-                            {% if f_category == cat.pk|stringformat:'s' %}selected{% endif %}>
+                            {% if f_category == cat.pk|stringformat:"s" %}selected{% endif %}>
                     {{ cat.name }}
                     </option>
                     {% endfor %}
@@ -223,8 +223,8 @@
                     <td><span class="td-main">{{ item.name }}</span></td>
 
 
-
-                    <td><span class="badge bdg-muted" style="font-family:monospace;font-size:11px">{{ item.item_code }}</span></td>
+                    <td><span class="badge bdg-muted"
+                              style="font-family:monospace;font-size:11px">{{ item.item_code }}</span></td>
 
                     <td>
                         <span class="badge bdg-muted">{{ item.category.name }}</span>
@@ -271,6 +271,19 @@
                                      stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"/>
                                     <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                            </a>
+                            <a href="{% url 'inventory:transaction_list' %}?item={{ item.pk }}"
+                               class="btn btn-ghost btn-sq" title="مشاهده تراکنش‌های این کالا">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2"
+                                     stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="8" y1="6" x2="21" y2="6"/>
+                                    <line x1="8" y1="12" x2="21" y2="12"/>
+                                    <line x1="8" y1="18" x2="21" y2="18"/>
+                                    <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                    <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                    <line x1="3" y1="18" x2="3.01" y2="18"/>
                                 </svg>
                             </a>
                         </div>

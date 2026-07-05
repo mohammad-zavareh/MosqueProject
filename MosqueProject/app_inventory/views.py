@@ -15,7 +15,7 @@ from .models import InventoryTransaction, InventoryItem, InventoryCategory, Supp
 
 class InventoryTransactionListView(LoginRequiredMixin, TemplateView):
     template_name = "inv_transaction_list.html"
-    PAGINATE_BY   = 20
+    PAGINATE_BY = 20
 
     def get(self, request, *args, **kwargs):
         qs = (
@@ -47,8 +47,15 @@ class InventoryTransactionListView(LoginRequiredMixin, TemplateView):
         if cat_id.isdigit():
             qs = qs.filter(item__category_id=cat_id)
 
+        filtered_item_name = None
+        item_id = p.get("item", "")
+        if item_id.isdigit():
+            qs = qs.filter(item_id=item_id)
+            filtered_item_name = InventoryItem.objects.filter(pk=item_id, is_deleted=False).values_list("name",
+                                                                                                        flat=True).first()
+
         date_from = p.get("date_from", "").strip()
-        date_to   = p.get("date_to",   "").strip()
+        date_to = p.get("date_to", "").strip()
         if date_from:
             qs = qs.filter(date__gte=date_from)
         if date_to:
@@ -60,11 +67,11 @@ class InventoryTransactionListView(LoginRequiredMixin, TemplateView):
         except (ValueError, TypeError):
             page = 1
 
-        total      = qs.count()
+        total = qs.count()
         page_count = max(1, (total + self.PAGINATE_BY - 1) // self.PAGINATE_BY)
-        page       = min(page, page_count)
-        start      = (page - 1) * self.PAGINATE_BY
-        items      = qs[start : start + self.PAGINATE_BY]
+        page = min(page, page_count)
+        start = (page - 1) * self.PAGINATE_BY
+        items = qs[start: start + self.PAGINATE_BY]
 
         # querystring بدون page
         params = p.copy()
@@ -75,31 +82,33 @@ class InventoryTransactionListView(LoginRequiredMixin, TemplateView):
         summary = qs.aggregate(
             total_purchase=Sum("total_price",
                                filter=Q(transaction_type="PURCHASE")),
-            total_usage   =Sum("total_price",
-                               filter=Q(transaction_type="USAGE")),
+            total_usage=Sum("total_price",
+                            filter=Q(transaction_type="USAGE")),
         )
 
         ctx = {
-            "items":        items,
-            "total":        total,
-            "page":         page,
-            "page_count":   page_count,
-            "has_prev":     page > 1,
-            "has_next":     page < page_count,
-            "prev_page":    page - 1,
-            "next_page":    page + 1,
-            "qs_no_page":   qs_no_page,
-            "start_index":  start + 1,
-            "end_index":    min(start + self.PAGINATE_BY, total),
-            "summary":      summary,
-            "categories":   InventoryCategory.objects.filter(is_deleted=False).order_by("name"),
+            "items": items,
+            "total": total,
+            "page": page,
+            "page_count": page_count,
+            "has_prev": page > 1,
+            "has_next": page < page_count,
+            "prev_page": page - 1,
+            "next_page": page + 1,
+            "qs_no_page": qs_no_page,
+            "start_index": start + 1,
+            "end_index": min(start + self.PAGINATE_BY, total),
+            "summary": summary,
+            "categories": InventoryCategory.objects.filter(is_deleted=False).order_by("name"),
             # فیلترهای فعال
-            "f_q":          q,
-            "f_type":       txn_type,
-            "f_category":   cat_id,
-            "f_date_from":  date_from,
-            "f_date_to":    date_to,
-            "has_filters":  any([q, txn_type, cat_id, date_from, date_to]),
+            "f_q": q,
+            "f_type": txn_type,
+            "f_category": cat_id,
+            "f_item": item_id,
+            "f_item_name": filtered_item_name,
+            "f_date_from": date_from,
+            "f_date_to": date_to,
+            "has_filters": any([q, txn_type, cat_id, date_from, date_to]),
         }
         return self.render_to_response(ctx)
 
@@ -113,8 +122,8 @@ class InventoryTransactionCreateView(AuditViewMixin, LoginRequiredMixin, Templat
 
     def _ctx(self, form, instance=None):
         return {
-            "form":       form,
-            "instance":   instance,
+            "form": form,
+            "instance": instance,
             "items_json": self._items_json(),
         }
 
@@ -123,12 +132,12 @@ class InventoryTransactionCreateView(AuditViewMixin, LoginRequiredMixin, Templat
         import json
         data = {}
         for item in InventoryItem.objects.filter(is_deleted=False).values(
-            "id", "unit", "purchase_price", "current_stock"
+                "id", "unit", "purchase_price", "current_stock"
         ):
             data[str(item["id"])] = {
-                "unit":           item["unit"],
+                "unit": item["unit"],
                 "purchase_price": str(item["purchase_price"]),
-                "current_stock":  str(item["current_stock"]),
+                "current_stock": str(item["current_stock"]),
             }
         return json.dumps(data, ensure_ascii=False)
 
@@ -161,8 +170,8 @@ class InventoryTransactionUpdateView(AuditViewMixin, LoginRequiredMixin, Templat
 
     def _ctx(self, form, instance):
         return {
-            "form":       form,
-            "instance":   instance,
+            "form": form,
+            "instance": instance,
             "items_json": InventoryTransactionCreateView._items_json(),
         }
 
@@ -172,9 +181,9 @@ class InventoryTransactionUpdateView(AuditViewMixin, LoginRequiredMixin, Templat
         return self.render_to_response(self._ctx(InventoryTransactionForm(instance=obj), obj))
 
     def post(self, request, pk, *args, **kwargs):
-        obj    = self._get_obj(pk)
+        obj = self._get_obj(pk)
         before = request.session.pop(f"audit_snap_{pk}", {})
-        form   = InventoryTransactionForm(request.POST, instance=obj)
+        form = InventoryTransactionForm(request.POST, instance=obj)
         if form.is_valid():
             updated = form.save(commit=False)
             updated.updated_by = request.user
@@ -183,9 +192,6 @@ class InventoryTransactionUpdateView(AuditViewMixin, LoginRequiredMixin, Templat
             messages.success(request, f"تراکنش «{updated.item.name}» با موفقیت ویرایش شد.")
             return redirect("inventory:transaction_list")
         return self.render_to_response(self._ctx(form, obj))
-
-
-
 
 
 class InventoryItemListView(LoginRequiredMixin, TemplateView):
@@ -200,8 +206,8 @@ class InventoryItemListView(LoginRequiredMixin, TemplateView):
         )
 
         p = request.GET
-        q       = p.get("q", "").strip()
-        cat_id  = p.get("category", "")
+        q = p.get("q", "").strip()
+        cat_id = p.get("category", "")
 
         if q:
             qs = qs.filter(
@@ -213,10 +219,10 @@ class InventoryItemListView(LoginRequiredMixin, TemplateView):
             qs = qs.filter(category_id=cat_id)
 
         ctx = {
-            "items":      qs,
-            "total":      qs.count(),
+            "items": qs,
+            "total": qs.count(),
             "categories": InventoryCategory.objects.filter(is_deleted=False).order_by("name"),
-            "f_q":        q,
+            "f_q": q,
             "f_category": cat_id,
             "has_filters": any([q, cat_id]),
         }
@@ -261,9 +267,9 @@ class InventoryItemUpdateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
         return self.render_to_response(self._ctx(InventoryItemForm(instance=obj), obj))
 
     def post(self, request, pk, *args, **kwargs):
-        obj    = self._get_obj(pk)
+        obj = self._get_obj(pk)
         before = request.session.pop(f"audit_snap_{pk}", {})
-        form   = InventoryItemForm(request.POST, instance=obj)
+        form = InventoryItemForm(request.POST, instance=obj)
         if form.is_valid():
             updated = form.save(commit=False)
             updated.updated_by = request.user
@@ -274,15 +280,11 @@ class InventoryItemUpdateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
         return self.render_to_response(self._ctx(form, obj))
 
 
-
-
-
-
 class SupplierListView(LoginRequiredMixin, TemplateView):
     template_name = "supplier_list.html"
 
     def get(self, request, *args, **kwargs):
-        q  = request.GET.get("q", "").strip()
+        q = request.GET.get("q", "").strip()
         qs = Supplier.objects.filter(is_deleted=False)
 
         if q:
@@ -297,9 +299,9 @@ class SupplierListView(LoginRequiredMixin, TemplateView):
         ).order_by("name")
 
         ctx = {
-            "suppliers":   qs,
-            "total":       qs.count(),
-            "q":           q,
+            "suppliers": qs,
+            "total": qs.count(),
+            "q": q,
             "has_filters": bool(q),
         }
         return self.render_to_response(ctx)
@@ -343,9 +345,9 @@ class SupplierUpdateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
         return self.render_to_response(self._ctx(SupplierForm(instance=obj), obj))
 
     def post(self, request, pk, *args, **kwargs):
-        obj    = self._get_obj(pk)
+        obj = self._get_obj(pk)
         before = request.session.pop(f"audit_snap_{pk}", {})
-        form   = SupplierForm(request.POST, instance=obj)
+        form = SupplierForm(request.POST, instance=obj)
         if form.is_valid():
             updated = form.save(commit=False)
             updated.updated_by = request.user
@@ -354,6 +356,7 @@ class SupplierUpdateView(AuditViewMixin, LoginRequiredMixin, TemplateView):
             messages.success(request, f"تأمین‌کننده «{updated.name}» با موفقیت ویرایش شد.")
             return redirect("inventory:supplier_list")
         return self.render_to_response(self._ctx(form, obj))
+
 
 # ── لیست ────────────────────────────────────────────────
 class InventoryCategoryListView(LoginRequiredMixin, TemplateView):
@@ -368,7 +371,7 @@ class InventoryCategoryListView(LoginRequiredMixin, TemplateView):
         )
         ctx = {
             "categories": qs,
-            "total":      qs.count(),
+            "total": qs.count(),
         }
         return self.render_to_response(ctx)
 
@@ -412,7 +415,7 @@ class InventoryCategoryUpdateView(LoginRequiredMixin, TemplateView):
         )
 
     def post(self, request, pk, *args, **kwargs):
-        obj  = self._get_obj(pk)
+        obj = self._get_obj(pk)
         form = InventoryCategoryForm(request.POST, instance=obj)
         if form.is_valid():
             updated = form.save(commit=False)
@@ -461,12 +464,12 @@ class InventoryReportView(LoginRequiredMixin, TemplateView):
         # ── آمار کلی ─────────────────────────────────────
         all_items = InventoryItem.objects.filter(is_deleted=False)
         summary = {
-            "total_items":    all_items.count(),
-            "zero_stock":     all_items.filter(current_stock__lte=0).count(),
-            "low_stock":      all_items.filter(current_stock__gt=0, current_stock__lt=5).count(),
-            "total_value":    all_items.aggregate(
-                                  v=Sum("current_stock")
-                              )["v"] or 0,
+            "total_items": all_items.count(),
+            "zero_stock": all_items.filter(current_stock__lte=0).count(),
+            "low_stock": all_items.filter(current_stock__gt=0, current_stock__lt=5).count(),
+            "total_value": all_items.aggregate(
+                v=Sum("current_stock")
+            )["v"] or 0,
         }
 
         # ── پرمصرف‌ترین ──────────────────────────────────
@@ -483,16 +486,14 @@ class InventoryReportView(LoginRequiredMixin, TemplateView):
         )
 
         ctx = {
-            "items":       items_qs,
-            "summary":     summary,
-            "top_used":    top_used,
-            "categories":  InventoryCategory.objects.filter(is_deleted=False).order_by("name"),
-            "f_category":  cat_id,
+            "items": items_qs,
+            "summary": summary,
+            "top_used": top_used,
+            "categories": InventoryCategory.objects.filter(is_deleted=False).order_by("name"),
+            "f_category": cat_id,
             "has_filters": bool(cat_id),
         }
         return self.render_to_response(ctx)
-
-
 
 
 class AjaxItemSearchView(LoginRequiredMixin, View):
@@ -500,6 +501,7 @@ class AjaxItemSearchView(LoginRequiredMixin, View):
     GET /inventory/ajax/items/?q=ITM-001
     جستجو بر اساس item_code یا نام کالا
     """
+
     def get(self, request):
         q = request.GET.get("q", "").strip()
         qs = (
@@ -515,13 +517,13 @@ class AjaxItemSearchView(LoginRequiredMixin, View):
 
         results = [
             {
-                "id":           item.pk,
-                "item_code":    item.item_code,
-                "name":         item.name,
-                "unit":         item.unit,
+                "id": item.pk,
+                "item_code": item.item_code,
+                "name": item.name,
+                "unit": item.unit,
                 "purchase_price": str(item.purchase_price),
-                "current_stock":  str(item.current_stock),
-                "category":     item.category.name,
+                "current_stock": str(item.current_stock),
+                "category": item.category.name,
             }
             for item in qs
         ]
@@ -533,6 +535,7 @@ class AjaxExpenseSearchView(LoginRequiredMixin, View):
     GET /inventory/ajax/expenses/?q=REF-001
     جستجو بر اساس reference_number
     """
+
     def get(self, request):
         from app_finance.models import ExpenseDetail
         q = request.GET.get("q", "").strip()
@@ -553,10 +556,10 @@ class AjaxExpenseSearchView(LoginRequiredMixin, View):
         for exp in qs:
             txn = exp.transaction
             results.append({
-                "id":       exp.pk,
-                "ref":      txn.reference_number or f"#{txn.pk}",
-                "date":     txn.date.strftime("%Y/%m/%d") if txn.date else "—",
-                "amount":   f"{txn.amount:,.0f}",
+                "id": exp.pk,
+                "ref": txn.reference_number or f"#{txn.pk}",
+                "date": txn.date.strftime("%Y/%m/%d") if txn.date else "—",
+                "amount": f"{txn.amount:,.0f}",
                 "category": exp.category.name if exp.category_id else "—",
             })
         return JsonResponse({"results": results})

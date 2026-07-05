@@ -129,6 +129,11 @@
         {% if has_filters %}
           <span class="badge bdg-green" style="font-size:10px;padding:1px 7px">فعال</span>
         {% endif %}
+        {% if f_item_name %}
+          <span class="badge bdg-green" style="font-size:10px;padding:1px 7px;margin-right:6px">
+            کالا: {{ f_item_name }}
+          </span>
+        {% endif %}
       </div>
       <button type="button" class="ftoggle-btn" onclick="event.stopPropagation();toggleFilter()">
         <span class="ftoggle-icon" id="ficon">
