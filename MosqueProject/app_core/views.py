@@ -1,143 +1,267 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, F
 from django.utils import timezone
 from django.views.generic import TemplateView
 from django.contrib.auth import get_user_model
 from .models import AuditLog
-from app_finance.models import FinancialTransaction
-from app_inventory.models import InventoryItem
+from app_finance.models import FinancialTransaction, Fund, Event
+from app_inventory.models import InventoryItem, Supplier
+import datetime
+
+
+User = get_user_model()
+
+ACTION_LABELS_MAP = {
+    "CREATE": ("ایجاد", "bdg-green"),
+    "UPDATE": ("ویرایش", "bdg-blue"),
+    "DELETE": ("حذف", "bdg-red"),
+}
+
+MODEL_LABELS_MAP = {
+    "financialtransaction": "تراکنش مالی",
+    "incomedetail":         "جزئیات درآمد",
+    "expensedetail":        "جزئیات هزینه",
+    "inventoryitem":        "کالای انبار",
+    "inventorytransaction": "تراکنش انبار",
+    "supplier":             "تأمین‌کننده",
+    "fund":                 "صندوق",
+    "event":                "مناسبت",
+    "incomecategory":       "دسته درآمد",
+    "expensecategory":      "دسته هزینه",
+    "inventorycategory":    "دسته انبار",
+}
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "dashboard.html"
 
+    MONTH_NAMES = [
+        "", "فروردین", "اردیبهشت", "خرداد", "تیر",
+        "مرداد", "شهریور", "مهر", "آبان", "آذر",
+        "دی", "بهمن", "اسفند",
+    ]
+
     def get(self, request, *args, **kwargs):
         now        = timezone.now()
         this_month = now.replace(day=1).date()
 
-        # ── مالی این ماه ──────────────────────────────────
-        month_income = (
-            FinancialTransaction.objects
-            .filter(transaction_type="INCOME",
-                    is_deleted=False,
-                    date__gte=this_month)
-            .aggregate(s=Sum("amount"))["s"] or 0
-        )
-        month_expense = (
-            FinancialTransaction.objects
-            .filter(transaction_type="EXPENSE",
-                    is_deleted=False,
-                    date__gte=this_month)
-            .aggregate(s=Sum("amount"))["s"] or 0
-        )
-        month_balance = month_income - month_expense
+        # ── ماه قبل (برای محاسبه روند) ────────────────────
+        if this_month.month == 1:
+            prev_month_start = this_month.replace(year=this_month.year - 1, month=12)
+        else:
+            prev_month_start = this_month.replace(month=this_month.month - 1)
+        prev_month_end = this_month
 
-        # ── آخرین ۷ تراکنش ────────────────────────────────
+        base_qs = FinancialTransaction.objects.filter(is_deleted=False)
+
+        # ── مالی این ماه ──────────────────────────────────
+        month_income = base_qs.filter(
+            transaction_type="INCOME", date__gte=this_month
+        ).aggregate(s=Sum("amount"))["s"] or 0
+        month_expense = base_qs.filter(
+            transaction_type="EXPENSE", date__gte=this_month
+        ).aggregate(s=Sum("amount"))["s"] or 0
+        month_balance = month_income - month_expense
+        month_txn_count = base_qs.filter(date__gte=this_month).count()
+
+        # ── مالی ماه قبل ───────────────────────────────────
+        prev_income = base_qs.filter(
+            transaction_type="INCOME",
+            date__gte=prev_month_start, date__lt=prev_month_end,
+        ).aggregate(s=Sum("amount"))["s"] or 0
+        prev_expense = base_qs.filter(
+            transaction_type="EXPENSE",
+            date__gte=prev_month_start, date__lt=prev_month_end,
+        ).aggregate(s=Sum("amount"))["s"] or 0
+
+        def _trend(cur, prev):
+            if not prev:
+                return None
+            return round((float(cur) - float(prev)) / float(prev) * 100)
+
+        income_trend  = _trend(month_income, prev_income)
+        expense_trend = _trend(month_expense, prev_expense)
+
+        # ── جمع کل تاریخچه ─────────────────────────────────
+        total_income_all  = base_qs.filter(transaction_type="INCOME").aggregate(s=Sum("amount"))["s"] or 0
+        total_expense_all = base_qs.filter(transaction_type="EXPENSE").aggregate(s=Sum("amount"))["s"] or 0
+        total_balance_all = total_income_all - total_expense_all
+
+        # ── آخرین ۶ تراکنش ────────────────────────────────
         recent_txns = (
-            FinancialTransaction.objects
-            .filter(is_deleted=False)
+            base_qs
             .select_related(
                 "fund",
                 "income_detail__category",
                 "expense_detail__category",
             )
-            .order_by("-date", "-created_at")[:7]
+            .order_by("-date", "-created_at")[:6]
         )
+
+        # ── گردش هر صندوق ──────────────────────────────────
+        funds = Fund.objects.filter(is_deleted=False).annotate(
+            inc=Sum("transactions__amount",
+                    filter=Q(transactions__transaction_type="INCOME", transactions__is_deleted=False)),
+            exp=Sum("transactions__amount",
+                    filter=Q(transactions__transaction_type="EXPENSE", transactions__is_deleted=False)),
+        ).order_by("name")
+
+        fund_rows = []
+        for f in funds:
+            inc = f.inc or 0
+            exp = f.exp or 0
+            fund_rows.append({"name": f.name, "balance": inc - exp, "income": inc, "expense": exp})
+
+        max_fund_balance = max([abs(r["balance"]) for r in fund_rows], default=0) or 1
+        for row in fund_rows:
+            row["pct"] = round(abs(row["balance"]) / max_fund_balance * 100)
+
+        # ── تفکیک دسته‌بندی هزینه/درآمد این ماه (Top 5) ────
+        top_expense_cats = (
+            base_qs.filter(transaction_type="EXPENSE", date__gte=this_month)
+            .values("expense_detail__category__name")
+            .annotate(total=Sum("amount"))
+            .order_by("-total")[:5]
+        )
+        exp_cat_max = max([c["total"] for c in top_expense_cats], default=0) or 1
+        expense_cat_data = [
+            {
+                "name": c["expense_detail__category__name"] or "بدون دسته",
+                "total": c["total"] or 0,
+                "pct": round((c["total"] or 0) / exp_cat_max * 100),
+            }
+            for c in top_expense_cats
+        ]
+
+        top_income_cats = (
+            base_qs.filter(transaction_type="INCOME", date__gte=this_month)
+            .values("income_detail__category__name")
+            .annotate(total=Sum("amount"))
+            .order_by("-total")[:5]
+        )
+        inc_cat_max = max([c["total"] for c in top_income_cats], default=0) or 1
+        income_cat_data = [
+            {
+                "name": c["income_detail__category__name"] or "بدون دسته",
+                "total": c["total"] or 0,
+                "pct": round((c["total"] or 0) / inc_cat_max * 100),
+            }
+            for c in top_income_cats
+        ]
 
         # ── موجودی انبار ─────────────────────────────────
+        inv_qs = InventoryItem.objects.filter(is_deleted=False)
         inventory_items = (
-            InventoryItem.objects
-            .filter(is_deleted=False)
-            .select_related("category", "supplier")
-            .order_by("current_stock")[:8]
+            inv_qs.select_related("category", "supplier").order_by("current_stock")[:6]
         )
-        total_inventory_value = (
-            InventoryItem.objects
-            .filter(is_deleted=False)
-            .aggregate(
-                v=Sum("current_stock")
-            )["v"] or 0
-        )
-        low_stock_count = (
-            InventoryItem.objects
-            .filter(is_deleted=False, current_stock__lt=5)
-            .count()
-        )
-        zero_stock_count = (
-            InventoryItem.objects
-            .filter(is_deleted=False, current_stock__lte=0)
-            .count()
+        # ← FIX: قبلاً فقط Sum(current_stock) بود (مقدار، نه ارزش)
+        total_inventory_value = inv_qs.aggregate(
+            v=Sum(F("current_stock") * F("purchase_price"))
+        )["v"] or 0
+        low_stock_count   = inv_qs.filter(current_stock__gt=0, current_stock__lt=5).count()
+        zero_stock_count  = inv_qs.filter(current_stock__lte=0).count()
+        total_items_count = inv_qs.count()
+
+        top_used_items = (
+            inv_qs.annotate(used=Sum(
+                "transactions__quantity",
+                filter=Q(transactions__transaction_type="USAGE",
+                         transactions__is_deleted=False,
+                         transactions__date__gte=this_month)
+            ))
+            .filter(used__isnull=False)
+            .order_by("-used")[:5]
         )
 
-        # ── نمودار: ۶ ماه گذشته ───────────────────────────
+        # ── نمودار ۶ ماه گذشته ─────────────────────────────
         chart_data = []
-        MONTH_NAMES = [
-            "", "فروردین", "اردیبهشت", "خرداد", "تیر",
-            "مرداد", "شهریور", "مهر", "آبان", "آذر",
-            "دی", "بهمن", "اسفند",
-        ]
         for i in range(5, -1, -1):
-            # برگشت i ماه از ماه جاری
-            month_num  = now.month - i
-            year_num   = now.year
+            month_num = now.month - i
+            year_num  = now.year
             while month_num <= 0:
                 month_num += 12
                 year_num  -= 1
 
             if month_num == 12:
-                next_month = 1
-                next_year  = year_num + 1
+                next_month, next_year = 1, year_num + 1
             else:
-                next_month = month_num + 1
-                next_year  = year_num
+                next_month, next_year = month_num + 1, year_num
 
-            import datetime
             start = datetime.date(year_num, month_num, 1)
             try:
                 end = datetime.date(next_year, next_month, 1)
             except ValueError:
                 continue
 
-            inc = (FinancialTransaction.objects
-                   .filter(transaction_type="INCOME",
-                           is_deleted=False,
-                           date__gte=start, date__lt=end)
-                   .aggregate(s=Sum("amount"))["s"] or 0)
-            exp = (FinancialTransaction.objects
-                   .filter(transaction_type="EXPENSE",
-                           is_deleted=False,
-                           date__gte=start, date__lt=end)
-                   .aggregate(s=Sum("amount"))["s"] or 0)
+            inc = base_qs.filter(transaction_type="INCOME", date__gte=start, date__lt=end).aggregate(s=Sum("amount"))["s"] or 0
+            exp = base_qs.filter(transaction_type="EXPENSE", date__gte=start, date__lt=end).aggregate(s=Sum("amount"))["s"] or 0
 
             chart_data.append({
-                "label": MONTH_NAMES[month_num],
+                "label": self.MONTH_NAMES[month_num],
                 "inc":   float(inc),
                 "exp":   float(exp),
             })
 
-        # نرمال‌سازی برای ارتفاع نوارها (حداکثر ۱۰۰٪)
         max_val = max((max(d["inc"], d["exp"]) for d in chart_data), default=1) or 1
         for d in chart_data:
             d["inc_pct"] = round(d["inc"] / max_val * 100)
             d["exp_pct"] = round(d["exp"] / max_val * 100)
 
+        # ── آخرین فعالیت‌های حسابرسی ────────────────────────
+        recent_activity = list(
+            AuditLog.objects.select_related("user").order_by("-timestamp")[:6]
+        )
+        for log in recent_activity:
+            info = ACTION_LABELS_MAP.get(log.action, (log.action, "bdg-muted"))
+            log.action_label = info[0]
+            log.action_badge = info[1]
+            log.model_label  = MODEL_LABELS_MAP.get(log.model_name, log.model_name)
+
+        # ── آمار کلی سیستم ───────────────────────────────
+        stats = {
+            "funds_count":     Fund.objects.filter(is_deleted=False).count(),
+            "suppliers_count": Supplier.objects.filter(is_deleted=False).count(),
+            "users_count":     User.objects.filter(is_active=True).count(),
+            "events_count":    Event.objects.filter(is_deleted=False).count(),
+        }
+
         ctx = {
-            "month_income":         month_income,
-            "month_expense":        month_expense,
-            "month_balance":        month_balance,
-            "recent_txns":          recent_txns,
-            "inventory_items":      inventory_items,
-            "total_inventory_value":total_inventory_value,
-            "low_stock_count":      low_stock_count,
-            "zero_stock_count":     zero_stock_count,
-            "chart_data":           chart_data,
-            "current_month":        MONTH_NAMES[now.month],
+            "current_month": self.MONTH_NAMES[now.month],
+
+            "month_income":  month_income,
+            "month_expense": month_expense,
+            "month_balance": month_balance,
+            "income_trend":  income_trend,
+            "expense_trend": expense_trend,
+            "month_txn_count": month_txn_count,
+
+            "total_income_all":  total_income_all,
+            "total_expense_all": total_expense_all,
+            "total_balance_all": total_balance_all,
+
+            "recent_txns": recent_txns,
+            "fund_rows":   fund_rows,
+
+            "expense_cat_data": expense_cat_data,
+            "income_cat_data":  income_cat_data,
+
+            "inventory_items":       inventory_items,
+            "total_inventory_value": total_inventory_value,
+            "low_stock_count":       low_stock_count,
+            "zero_stock_count":      zero_stock_count,
+            "total_items_count":     total_items_count,
+            "top_used_items":        top_used_items,
+
+            "chart_data": chart_data,
+
+            "recent_activity": recent_activity,
+            "stats": stats,
         }
         return self.render_to_response(ctx)
 
 
+
 # بخش حسابداری
-User = get_user_model()
 
 ACTION_LABELS = {
     "CREATE": ("ایجاد",   "bdg-green"),
