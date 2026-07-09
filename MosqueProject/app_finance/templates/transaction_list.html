@@ -71,12 +71,62 @@
   color:inherit;text-decoration:none;
 }
 .sort-link:hover{color:var(--p2)}
+/* ── خلاصهٔ مبلغ (زیر جدول) ── */
+.total-sum-bar{display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;border-top:1px solid var(--border)}
+.total-sum-chip{
+  display:flex;align-items:center;gap:8px;padding:9px 16px;
+  border-radius:var(--r-sm);font-size:13px;font-weight:700;
+  border:1px solid transparent;
+}
+.tsc-count{background:var(--surface2);border-color:var(--border);color:var(--txt2)}
+.tsc-inc  {background:var(--green-bg);border-color:rgba(22,163,74,.2);color:var(--green-txt)}
+.tsc-exp  {background:var(--red-bg);border-color:rgba(220,38,38,.2);color:var(--red-txt)}
+.tsc-net  {background:var(--p-glow);border-color:rgba(26,107,74,.2);color:var(--p2)}
+
+/* ── هدر مخصوص پرینت ── */
+.print-header{display:none}
+
+@media print{
+  .sidebar, .topbar, .filter-panel, .no-print,
+  .row-actions, .row-dots, .pg-btns, .alert,
+  .tbl thead th:last-child, .tbl tbody td:last-child{
+    display:none !important;
+  }
+  .print-header{
+    display:block !important;
+    margin-bottom:18px;padding-bottom:14px;
+    border-bottom:2px solid #000;
+  }
+  .print-header h2{font-size:16px;margin-bottom:8px}
+  .print-header .pf-row{font-size:12px;margin-bottom:3px}
+  .content{padding:0 !important}
+  .card{box-shadow:none !important;border:1px solid #ddd !important}
+  body{background:#fff !important}
+  .main{margin:0 !important}
+}
 </style>
 {% endblock %}
 
 
 {% block content %}
 <div class="content">
+
+    {# ══ هدر مخصوص چاپ — فقط هنگام چاپ نمایش داده می‌شود ══ #}
+  <div class="print-header">
+    <h2>گزارش تراکنش‌های مالی</h2>
+    <div class="pf-row"><strong>تاریخ تهیه گزارش:</strong> {% now "Y/m/d H:i" %}</div>
+    {% if f_type %}<div class="pf-row"><strong>نوع:</strong> {% if f_type == 'INCOME' %}درآمد{% else %}هزینه{% endif %}</div>{% endif %}
+    {% if selected_event_name %}<div class="pf-row"><strong>مناسبت:</strong> {{ selected_event_name }}</div>{% endif %}
+    {% if selected_fund_name %}<div class="pf-row"><strong>صندوق:</strong> {{ selected_fund_name }}</div>{% endif %}
+    {% if f_date_from or f_date_to %}
+      <div class="pf-row"><strong>بازه تاریخ:</strong> {{ f_date_from|default:"ابتدا" }} تا {{ f_date_to|default:"اکنون" }}</div>
+    {% endif %}
+    {% if f_amount_min or f_amount_max %}
+      <div class="pf-row"><strong>بازه مبلغ:</strong> {{ f_amount_min|default:"—" }} تا {{ f_amount_max|default:"—" }} تومان</div>
+    {% endif %}
+    {% if f_q %}<div class="pf-row"><strong>جستجو:</strong> {{ f_q }}</div>{% endif %}
+    {% if not has_filters %}<div class="pf-row">بدون فیلتر — تمام تراکنش‌ها</div>{% endif %}
+  </div>
 
   {# ══ عنوان ══ #}
   <div class="sec-title">
@@ -92,7 +142,15 @@
     </svg>
     لیست تراکنش‌های مالی
     <span class="sec-badge">{{ paginator.count }} رکورد</span>
-    <div style="margin-right:auto">
+<div style="margin-right:auto;display:flex;gap:8px" class="no-print">
+      <a href="?print=1{{ qs_no_page }}" target="_blank" class="btn btn-ghost btn-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 6 2 18 2 18 9"/>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+          <rect x="6" y="14" width="12" height="8"/>
+        </svg>
+        چاپ گزارش کامل
+      </a>
       <a href="{% url 'finance:transaction_create' %}?tab=income"
          class="btn btn-primary btn-sm">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -536,6 +594,29 @@
       </table>
     </div>
 
+    {# ══ خلاصهٔ مبلغ بر اساس فیلتر اعمال‌شده ══ #}
+    {% if has_filters %}
+    <div class="total-sum-bar">
+      <div class="total-sum-chip tsc-count">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        {{ sum_count }} تراکنش فیلترشده
+      </div>
+      <div class="total-sum-chip tsc-inc">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        جمع درآمد: {{ sum_income|floatformat:0 }} تومان
+      </div>
+      <div class="total-sum-chip tsc-exp">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+        جمع هزینه: {{ sum_expense|floatformat:0 }} تومان
+      </div>
+      <div class="total-sum-chip tsc-net">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        خالص: {{ sum_net|floatformat:0 }} تومان
+      </div>
+    </div>
+    {% endif %}
+
+
     {# ══ Pagination ══ #}
     {% if is_paginated %}
     <div style="display:flex;align-items:center;justify-content:space-between;
@@ -694,5 +775,11 @@ if (searchInput) {
     }, 500);
   });
 }
+
+{% if is_print_mode %}
+window.addEventListener('load', function () {
+  setTimeout(function () { window.print(); }, 300);
+});
+{% endif %}
 </script>
 {% endblock %}

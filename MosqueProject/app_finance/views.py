@@ -33,6 +33,14 @@ class TransactionListView(LoginRequiredMixin, ListView):
         "event__name",
     ]
 
+    def get_paginate_by(self, queryset):
+        # وقتی از دکمه «چاپ گزارش کامل» می‌آید، صفحه‌بندی غیرفعال می‌شود
+        # تا همهٔ نتایج فیلترشده (نه فقط یک صفحه) نمایش داده شود
+        if self.request.GET.get("print") == "1":
+            return None
+        return self.paginate_by
+
+
     def get_queryset(self):
         qs = (
             FinancialTransaction.objects
@@ -87,32 +95,55 @@ class TransactionListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        p   = self.request.GET
+        p = self.request.GET
 
         ctx["funds"] = Fund.objects.only("id", "name").order_by("name")
-
-        # فیلترهای فعال — برای نمایش badge و پر کردن فرم
-        ctx["f_q"]          = p.get("q",          "").strip()
-        ctx["f_type"]       = p.get("type",        "").upper()
-        ctx["f_fund"]       = p.get("fund",        "")
-        ctx["f_date_from"]  = p.get("date_from",   "").strip()
-        ctx["f_date_to"]    = p.get("date_to",     "").strip()
-        ctx["f_amount_min"] = p.get("amount_min",  "").strip()
-        ctx["f_amount_max"] = p.get("amount_max",  "").strip()
-        ctx["f_ordering"]   = p.get("ordering",    "")
         ctx["events"] = Event.objects.only("id", "name").order_by("name")
+
+        ctx["f_q"] = p.get("q", "").strip()
+        ctx["f_type"] = p.get("type", "").upper()
+        ctx["f_fund"] = p.get("fund", "")
         ctx["f_event"] = p.get("event", "")
+        ctx["f_date_from"] = p.get("date_from", "").strip()
+        ctx["f_date_to"] = p.get("date_to", "").strip()
+        ctx["f_amount_min"] = p.get("amount_min", "").strip()
+        ctx["f_amount_max"] = p.get("amount_max", "").strip()
+        ctx["f_ordering"] = p.get("ordering", "")
 
         ctx["has_filters"] = any([
-            ctx["f_q"], ctx["f_type"], ctx["f_fund"],ctx["f_event"],
+            ctx["f_q"], ctx["f_type"], ctx["f_fund"], ctx["f_event"],
             ctx["f_date_from"], ctx["f_date_to"],
             ctx["f_amount_min"], ctx["f_amount_max"],
         ])
 
-        # querystring بدون page — برای لینک‌های pagination
         params = p.copy()
         params.pop("page", None)
+        params.pop("print", None)
         ctx["qs_no_page"] = ("&" + params.urlencode()) if params else ""
+
+        # ── خلاصهٔ مبلغ روی کل نتایج فیلترشده (نه فقط صفحهٔ فعلی) ──
+        full_qs = self.object_list
+        sums = full_qs.aggregate(
+            total_income=Sum("amount", filter=Q(transaction_type="INCOME")),
+            total_expense=Sum("amount", filter=Q(transaction_type="EXPENSE")),
+        )
+        ctx["sum_income"] = sums["total_income"] or 0
+        ctx["sum_expense"] = sums["total_expense"] or 0
+        ctx["sum_net"] = ctx["sum_income"] - ctx["sum_expense"]
+        ctx["sum_count"] = full_qs.count()
+
+        # ── نام صندوق/مناسبت انتخاب‌شده، برای نمایش در هدر پرینت ──
+        ctx["selected_fund_name"] = None
+        if ctx["f_fund"]:
+            f_obj = Fund.objects.filter(pk=ctx["f_fund"]).first()
+            ctx["selected_fund_name"] = f_obj.name if f_obj else None
+
+        ctx["selected_event_name"] = None
+        if ctx["f_event"]:
+            e_obj = Event.objects.filter(pk=ctx["f_event"]).first()
+            ctx["selected_event_name"] = e_obj.name if e_obj else None
+
+        ctx["is_print_mode"] = p.get("print") == "1"
 
         return ctx
 
