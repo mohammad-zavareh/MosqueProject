@@ -1,5 +1,6 @@
 {% extends "base/main.html" %}
 {% load static %}
+{% load persian_filters %}
 
 {% block title %}لیست تراکنش‌های مالی{% endblock %}
 
@@ -517,7 +518,7 @@
               {{ page_obj.start_index|add:forloop.counter0 }}
             </td>
             <td>
-              <span class="td-main">{{ txn.date|date:"Y/m/d" }}</span>
+              <span class="td-main">{{ txn.date|to_jalali }}</span>
             </td>
             <td>
               {% if txn.transaction_type == 'INCOME' %}

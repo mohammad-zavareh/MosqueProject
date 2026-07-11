@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'jalali_date_new/css/jalalidatepicker.min.css' %}" rel="stylesheet">
 <style>
 /* ── field error ── */
 .field-err{
@@ -411,6 +412,22 @@
 
 
 {% block extra_js %}
+
+<script src="{% static 'jalali_date_new/js/jalalidatepicker.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  jalaliDatepicker.startWatch({
+    time: false,
+    persianDigit: true,
+    autoHide: true,
+    topSpace: 4,
+    hideAfterChange: true
+  });
+});
+</script>
+
+
+
 <script>
 /* ══════════════════════════════════════════════════════
    TAB SWITCHER

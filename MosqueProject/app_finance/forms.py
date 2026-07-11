@@ -3,12 +3,13 @@ from .models import (
     FinancialTransaction, IncomeDetail, ExpenseDetail,
     IncomeCategory, ExpenseCategory, Fund, Event,
 )
+from jalali_date_new.fields import JalaliDateField
+from jalali_date_new.widgets import AdminJalaliDateWidget
 
 _INPUT    = {"class": "form-ctrl"}
 _SELECT   = {"class": "form-ctrl"}
 _TEXTAREA = {"class": "form-ctrl", "rows": "3"}
 _NUMBER   = {"class": "form-ctrl", "type": "number", "min": "0", "step": "0.01"}
-_DATE     = {"class": "form-ctrl", "type": "date"}
 
 
 # ── فیلدهای مشترک هر دو فرم ─────────────────────────────────
@@ -19,7 +20,6 @@ class TransactionBaseForm(forms.ModelForm):
                   "description", "image_receipt"]
         widgets = {
             "amount":           forms.NumberInput(attrs={**_NUMBER, "placeholder": "مبلغ به تومان"}),
-            "date":             forms.DateInput(attrs={**_DATE}),
             "fund":             forms.Select(attrs=_SELECT),
             "event":            forms.Select(attrs=_SELECT),
             "reference_number": forms.TextInput(attrs={**_INPUT, "placeholder": "شماره مرجع / فاکتور"}),
@@ -48,7 +48,7 @@ class TransactionBaseForm(forms.ModelForm):
         self.fields["event"].required    = False
         self.fields["fund"].queryset     = Fund.objects.only("id", "name").order_by("name")
         self.fields["event"].queryset    = Event.objects.only("id", "name").order_by("name")
-
+        self.fields["date"] = JalaliDateField(label="تاریخ",widget=AdminJalaliDateWidget(attrs={"class": "form-ctrl"}))
 
 # ── فیلدهای اختصاصی درآمد ────────────────────────────────────
 class IncomeDetailForm(forms.ModelForm):

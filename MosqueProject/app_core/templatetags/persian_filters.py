@@ -1,5 +1,7 @@
 from django import template
 from decimal import Decimal, InvalidOperation
+import datetime as dt
+import jdatetime
 
 register = template.Library()
 
@@ -31,3 +33,20 @@ def money(value, suffix=""):
 def money_toman(value):
     """میانبر: عدد + تومان"""
     return money(value, "تومان")
+
+
+
+@register.filter
+def to_jalali(value, fmt="%Y/%m/%d"):
+    if not value:
+        return ""
+    try:
+        if isinstance(value, dt.datetime):
+            j = jdatetime.datetime.fromgregorian(datetime=value)
+        elif isinstance(value, dt.date):
+            j = jdatetime.date.fromgregorian(date=value)
+        else:
+            return value
+        return j.strftime(fmt)
+    except Exception:
+        return value
