@@ -79,3 +79,63 @@ class UserCreateForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+
+class PasswordChangeForm(forms.Form):
+    old_password = forms.CharField(
+        label="رمز عبور فعلی",
+        widget=forms.PasswordInput(attrs={
+            **_INPUT,
+            "placeholder": "رمز عبور فعلی خود را وارد کنید",
+            "autocomplete": "current-password",
+        }),
+        error_messages={"required": "وارد کردن رمز عبور فعلی الزامی است."},
+    )
+    new_password1 = forms.CharField(
+        label="رمز عبور جدید",
+        widget=forms.PasswordInput(attrs={
+            **_INPUT,
+            "placeholder": "رمز عبور جدید",
+            "autocomplete": "new-password",
+        }),
+        error_messages={"required": "وارد کردن رمز عبور جدید الزامی است."},
+    )
+    new_password2 = forms.CharField(
+        label="تکرار رمز عبور جدید",
+        widget=forms.PasswordInput(attrs={
+            **_INPUT,
+            "placeholder": "تکرار رمز عبور جدید",
+            "autocomplete": "new-password",
+        }),
+        error_messages={"required": "تکرار رمز عبور جدید الزامی است."},
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_old_password(self):
+        old_password = self.cleaned_data.get("old_password")
+        if old_password and not self.user.check_password(old_password):
+            raise forms.ValidationError("رمز عبور فعلی صحیح نیست.")
+        return old_password
+
+    def clean_new_password1(self):
+        pw = self.cleaned_data.get("new_password1")
+        if pw:
+            validate_password(pw, self.user)
+        return pw
+
+    def clean_new_password2(self):
+        pw1 = self.cleaned_data.get("new_password1")
+        pw2 = self.cleaned_data.get("new_password2")
+        if pw1 and pw2 and pw1 != pw2:
+            raise forms.ValidationError("رمز عبور جدید و تکرار آن یکسان نیستند.")
+        return pw2
+
+    def save(self, commit=True):
+        self.user.set_password(self.cleaned_data["new_password1"])
+        if commit:
+            self.user.save()
+        return self.user

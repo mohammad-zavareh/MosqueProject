@@ -7,8 +7,10 @@ from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.db.models import Q
-from .forms import UserCreateForm
 from django.contrib.auth import get_user_model
+from django.contrib.auth import update_session_auth_hash
+from .forms import UserCreateForm, PasswordChangeForm
+
 User = get_user_model()
 
 
@@ -66,4 +68,21 @@ class UserCreateView(LoginRequiredMixin, TemplateView):
                 f"کاربر «{user.username}» با موفقیت ایجاد شد.",
             )
             return redirect("account:user_list")
+        return self.render_to_response({"form": form})
+
+
+class PasswordChangeView(LoginRequiredMixin, TemplateView):
+    template_name = "change_password.html"
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response({"form": PasswordChangeForm(request.user)})
+
+    def post(self, request, *args, **kwargs):
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            form.save()
+            # جلوگیری از logout شدن کاربر بعد از تغییر رمز
+            update_session_auth_hash(request, request.user)
+            messages.success(request, "رمز عبور شما با موفقیت تغییر کرد.")
+            return redirect("core:dashboard")
         return self.render_to_response({"form": form})
