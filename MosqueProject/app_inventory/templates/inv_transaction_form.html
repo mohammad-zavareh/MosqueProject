@@ -473,7 +473,7 @@
         <div style="display:flex;flex-direction:column;gap:8px">
           <div>
             <div class="fs-11 text-muted mb-8">تاریخ ثبت</div>
-            <div class="fw-600 fs-12">{{ instance.created_at|date:"Y/m/d H:i" }}</div>
+            <div class="fw-600 fs-12">{{ instance.created_at|to_jalali }}</div>
           </div>
           {% if instance.created_by %}
           <div>

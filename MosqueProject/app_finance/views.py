@@ -14,6 +14,7 @@ from .models import (
 )
 import datetime
 from django.utils import timezone
+from app_core.jalali_utils import parse_jalali_date, to_jalali_str
 
 
 class TransactionListView(LoginRequiredMixin, ListView):
@@ -73,8 +74,8 @@ class TransactionListView(LoginRequiredMixin, ListView):
         if event_id.isdigit():
             qs = qs.filter(event_id=event_id)
 
-        date_from = p.get("date_from", "").strip()
-        date_to   = p.get("date_to",   "").strip()
+        date_from = parse_jalali_date(p.get("date_from", "").strip())
+        date_to = parse_jalali_date(p.get("date_to", "").strip())
         if date_from:
             qs = qs.filter(date__gte=date_from)
         if date_to:
@@ -736,17 +737,16 @@ class FundFlowView(LoginRequiredMixin, TemplateView):
         p = request.GET
         today = timezone.now().date()
 
-        # پیش‌فرض: اول ماه جاری تا امروز
-        date_from = p.get("date_from", "") or today.replace(day=1).isoformat()
-        date_to   = p.get("date_to",   "") or today.isoformat()
-        fund_id   = p.get("fund", "")
+        date_from_raw = p.get("date_from", "").strip()
+        date_to_raw = p.get("date_to", "").strip()
 
-        try:
-            d_from = datetime.date.fromisoformat(date_from)
-            d_to   = datetime.date.fromisoformat(date_to)
-        except ValueError:
-            d_from = today.replace(day=1)
-            d_to   = today
+        d_from = parse_jalali_date(date_from_raw) or today.replace(day=1)
+        d_to = parse_jalali_date(date_to_raw) or today
+
+        date_from = date_from_raw or to_jalali_str(d_from)
+        date_to = date_to_raw or to_jalali_str(d_to)
+
+        fund_id   = p.get("fund", "")
 
         funds = Fund.objects.filter(is_deleted=False).order_by("name")
         selected_fund = None
@@ -820,18 +820,18 @@ class FinanceReportView(LoginRequiredMixin, TemplateView):
         p     = request.GET
         today = timezone.now().date()
 
-        date_from = p.get("date_from", "") or today.replace(day=1).isoformat()
-        date_to   = p.get("date_to",   "") or today.isoformat()
+        date_from_raw = p.get("date_from", "").strip()
+        date_to_raw = p.get("date_to", "").strip()
+
+        d_from = parse_jalali_date(date_from_raw) or today.replace(day=1)
+        d_to = parse_jalali_date(date_to_raw) or today
+
+        date_from = date_from_raw or to_jalali_str(d_from)
+        date_to = date_to_raw or to_jalali_str(d_to)
+
         txn_type  = p.get("type", "INCOME").upper()
         if txn_type not in ("INCOME", "EXPENSE"):
             txn_type = "INCOME"
-
-        try:
-            d_from = datetime.date.fromisoformat(date_from)
-            d_to   = datetime.date.fromisoformat(date_to)
-        except ValueError:
-            d_from = today.replace(day=1)
-            d_to   = today
 
         # ── جمع کل بازه ──────────────────────────────────
         base_qs = FinancialTransaction.objects.filter(

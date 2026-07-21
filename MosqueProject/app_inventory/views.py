@@ -7,7 +7,7 @@ from django.views.generic import TemplateView, View
 from app_core.mixin import AuditViewMixin
 from .forms import InventoryTransactionForm, InventoryItemForm, SupplierForm, InventoryCategoryForm
 from .models import InventoryTransaction, InventoryItem, InventoryCategory, Supplier
-
+from app_core.jalali_utils import parse_jalali_date
 
 # ══════════════════════════════════════════════════════════════
 #  لیست تراکنش‌های انبار
@@ -54,8 +54,10 @@ class InventoryTransactionListView(LoginRequiredMixin, TemplateView):
             filtered_item_name = InventoryItem.objects.filter(pk=item_id, is_deleted=False).values_list("name",
                                                                                                         flat=True).first()
 
-        date_from = p.get("date_from", "").strip()
-        date_to = p.get("date_to", "").strip()
+        date_from_raw = p.get("date_from", "").strip()
+        date_to_raw = p.get("date_to", "").strip()
+        date_from = parse_jalali_date(date_from_raw)
+        date_to = parse_jalali_date(date_to_raw)
         if date_from:
             qs = qs.filter(date__gte=date_from)
         if date_to:
@@ -106,8 +108,8 @@ class InventoryTransactionListView(LoginRequiredMixin, TemplateView):
             "f_category": cat_id,
             "f_item": item_id,
             "f_item_name": filtered_item_name,
-            "f_date_from": date_from,
-            "f_date_to": date_to,
+            "f_date_from": date_from_raw,
+            "f_date_to": date_to_raw,
             "has_filters": any([q, txn_type, cat_id, date_from, date_to]),
         }
         return self.render_to_response(ctx)

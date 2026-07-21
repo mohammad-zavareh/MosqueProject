@@ -7,7 +7,8 @@ from .models import AuditLog
 from app_finance.models import FinancialTransaction, Fund, Event
 from app_inventory.models import InventoryItem, Supplier
 import datetime
-
+from .jalali_utils import parse_jalali_date
+import jdatetime
 
 User = get_user_model()
 
@@ -173,33 +174,29 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             .order_by("-used")[:5]
         )
 
-        # ── نمودار ۶ ماه گذشته ─────────────────────────────
+        # ── نمودار ۶ ماه گذشته (بر اساس تقویم شمسی) ─────────────────────
+        today_j = jdatetime.date.fromgregorian(date=now.date())
         chart_data = []
         for i in range(5, -1, -1):
-            month_num = now.month - i
-            year_num  = now.year
-            while month_num <= 0:
-                month_num += 12
-                year_num  -= 1
+            back = today_j.month - 1 - i
+            year_offset, month_index = divmod(back, 12)
+            j_year, j_month = today_j.year + year_offset, month_index + 1
 
-            if month_num == 12:
-                next_month, next_year = 1, year_num + 1
+            start = jdatetime.date(j_year, j_month, 1).togregorian()
+            if j_month == 12:
+                end = jdatetime.date(j_year + 1, 1, 1).togregorian()
             else:
-                next_month, next_year = month_num + 1, year_num
+                end = jdatetime.date(j_year, j_month + 1, 1).togregorian()
 
-            start = datetime.date(year_num, month_num, 1)
-            try:
-                end = datetime.date(next_year, next_month, 1)
-            except ValueError:
-                continue
-
-            inc = base_qs.filter(transaction_type="INCOME", date__gte=start, date__lt=end).aggregate(s=Sum("amount"))["s"] or 0
-            exp = base_qs.filter(transaction_type="EXPENSE", date__gte=start, date__lt=end).aggregate(s=Sum("amount"))["s"] or 0
+            inc = base_qs.filter(transaction_type="INCOME", date__gte=start, date__lt=end).aggregate(s=Sum("amount"))[
+                      "s"] or 0
+            exp = base_qs.filter(transaction_type="EXPENSE", date__gte=start, date__lt=end).aggregate(s=Sum("amount"))[
+                      "s"] or 0
 
             chart_data.append({
-                "label": self.MONTH_NAMES[month_num],
-                "inc":   float(inc),
-                "exp":   float(exp),
+                "label": self.MONTH_NAMES[j_month],
+                "inc": float(inc),
+                "exp": float(exp),
             })
 
         max_val = max((max(d["inc"], d["exp"]) for d in chart_data), default=1) or 1
@@ -289,7 +286,7 @@ class AuditLogListView(LoginRequiredMixin, TemplateView):
     PAGINATE_BY   = 25
 
     def get(self, request, *args, **kwargs):
-        p  = request.GET
+        p = request.GET
         qs = AuditLog.objects.select_related("user", "content_type")
 
         # ── فیلترها ─────────────────────────────────────
@@ -314,12 +311,15 @@ class AuditLogListView(LoginRequiredMixin, TemplateView):
         if user_id.isdigit():
             qs = qs.filter(user_id=user_id)
 
+        # ← فقط همین یک بلاک باید باشه، جای بلاک قدیمی
         date_from = p.get("date_from", "").strip()
-        date_to   = p.get("date_to",   "").strip()
-        if date_from:
-            qs = qs.filter(timestamp__date__gte=date_from)
-        if date_to:
-            qs = qs.filter(timestamp__date__lte=date_to)
+        date_to = p.get("date_to", "").strip()
+        parsed_from = parse_jalali_date(date_from)
+        parsed_to = parse_jalali_date(date_to)
+        if parsed_from:
+            qs = qs.filter(timestamp__date__gte=parsed_from)
+        if parsed_to:
+            qs = qs.filter(timestamp__date__lte=parsed_to)
 
         # ── صفحه‌بندی ────────────────────────────────────
         try:
@@ -327,52 +327,50 @@ class AuditLogListView(LoginRequiredMixin, TemplateView):
         except (ValueError, TypeError):
             page = 1
 
-        total      = qs.count()
+        total = qs.count()
         page_count = max(1, (total + self.PAGINATE_BY - 1) // self.PAGINATE_BY)
-        page       = min(page, page_count)
-        start      = (page - 1) * self.PAGINATE_BY
-        logs       = qs[start: start + self.PAGINATE_BY]
+        page = min(page, page_count)
+        start = (page - 1) * self.PAGINATE_BY
+        logs = qs[start: start + self.PAGINATE_BY]
 
-        # برچسب عملیات به هر log اضافه می‌کنیم
         for log in logs:
             info = ACTION_LABELS.get(log.action, (log.action, "bdg-muted"))
             log.action_label = info[0]
             log.action_badge = info[1]
-            log.model_label  = MODEL_LABELS.get(log.model_name, log.model_name)
+            log.model_label = MODEL_LABELS.get(log.model_name, log.model_name)
 
         params = p.copy()
         params.pop("page", None)
         qs_no_page = ("&" + params.urlencode()) if params else ""
 
-        # ── آمار سریع ────────────────────────────────────
         summary = {
-            "total":   total,
-            "create":  AuditLog.objects.filter(action="CREATE").count(),
-            "update":  AuditLog.objects.filter(action="UPDATE").count(),
-            "delete":  AuditLog.objects.filter(action="DELETE").count(),
+            "total": total,
+            "create": AuditLog.objects.filter(action="CREATE").count(),
+            "update": AuditLog.objects.filter(action="UPDATE").count(),
+            "delete": AuditLog.objects.filter(action="DELETE").count(),
         }
 
         ctx = {
-            "logs":        logs,
-            "total":       total,
-            "page":        page,
-            "page_count":  page_count,
-            "has_prev":    page > 1,
-            "has_next":    page < page_count,
-            "prev_page":   page - 1,
-            "next_page":   page + 1,
+            "logs": logs,
+            "total": total,
+            "page": page,
+            "page_count": page_count,
+            "has_prev": page > 1,
+            "has_next": page < page_count,
+            "prev_page": page - 1,
+            "next_page": page + 1,
             "start_index": start + 1,
-            "end_index":   min(start + self.PAGINATE_BY, total),
-            "qs_no_page":  qs_no_page,
-            "summary":     summary,
-            "users":       User.objects.filter(audit_logs__isnull=False).distinct().order_by("username"),
-            "models":      sorted(MODEL_LABELS.items()),
-            "f_q":         q,
-            "f_action":    action,
-            "f_model":     model,
-            "f_user":      user_id,
-            "f_date_from": date_from,
-            "f_date_to":   date_to,
+            "end_index": min(start + self.PAGINATE_BY, total),
+            "qs_no_page": qs_no_page,
+            "summary": summary,
+            "users": User.objects.filter(audit_logs__isnull=False).distinct().order_by("username"),
+            "models": sorted(MODEL_LABELS.items()),
+            "f_q": q,
+            "f_action": action,
+            "f_model": model,
+            "f_user": user_id,
+            "f_date_from": date_from,  # ← رشته خام شمسی، برای نمایش توی input
+            "f_date_to": date_to,
             "has_filters": any([q, action, model, user_id, date_from, date_to]),
         }
         return self.render_to_response(ctx)

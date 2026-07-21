@@ -5,6 +5,8 @@
 {% block title %}حسابرسی{% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'jalali_date_new/css/jalalidatepicker.min.css' %}" rel="stylesheet">
+
 <style>
 .filter-panel{
   background:var(--surface);border:1px solid var(--border);
@@ -199,13 +201,15 @@
           <div class="col-12 col-md-3">
             <div class="form-group">
               <label class="form-lbl">از تاریخ</label>
-              <input type="date" name="date_from" class="form-ctrl" value="{{ f_date_from }}">
+<input type="text" name="date_from" class="form-ctrl" data-jdp data-jdp-only-date
+       placeholder="۱۴۰۳/۰۵/۰۱" autocomplete="off" value="{{ f_date_from }}">
             </div>
           </div>
           <div class="col-12 col-md-3">
             <div class="form-group">
               <label class="form-lbl">تا تاریخ</label>
-              <input type="date" name="date_to" class="form-ctrl" value="{{ f_date_to }}">
+<input type="text" name="date_to" class="form-ctrl" data-jdp data-jdp-only-date
+       placeholder="۱۴۰۳/۰۵/۰۱" autocomplete="off" value="{{ f_date_to }}">
             </div>
           </div>
         </div>
@@ -378,6 +382,19 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'jalali_date_new/js/jalalidatepicker.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  jalaliDatepicker.startWatch({
+    time: false,
+    persianDigit: true,
+    autoHide: true,
+    topSpace: 4,
+    hideAfterChange: true
+  });
+});
+</script>
+
 <script>
 var filterOpen = {{ has_filters|yesno:"true,false" }};
 var fBody = document.getElementById('filterBody');
