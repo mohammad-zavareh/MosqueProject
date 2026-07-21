@@ -1,5 +1,6 @@
 {% extends "base/main.html" %}
 {% load static %}
+{% load persian_filters %}
 
 {% block title %}جزئیات لاگ #{{ log.pk }}{% endblock %}
 
@@ -91,7 +92,7 @@
 
           <div>
             <div class="fs-11 text-muted mb-8">زمان عملیات</div>
-            <div class="fw-700">{{ log.timestamp|date:"Y/m/d" }}</div>
+            <div class="fw-700">{{ log.timestamp|to_jalali }}</div>
             <div class="fs-12 text-muted">{{ log.timestamp|time:"H:i:s" }}</div>
           </div>
 

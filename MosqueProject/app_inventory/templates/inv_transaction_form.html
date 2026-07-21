@@ -6,6 +6,8 @@
 {% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'jalali_date_new/css/jalalidatepicker.min.css' %}" rel="stylesheet">
+
 <style>
 .field-err{
   display:flex;align-items:center;gap:5px;
@@ -496,6 +498,19 @@
 
 
 {% block extra_js %}
+<script src="{% static 'jalali_date_new/js/jalalidatepicker.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  jalaliDatepicker.startWatch({
+    time: false,
+    persianDigit: true,
+    autoHide: true,
+    topSpace: 4,
+    hideAfterChange: true
+  });
+});
+</script>
+
 <script>
 /* ══════════════════════════════════════════════════════
    URL های Ajax

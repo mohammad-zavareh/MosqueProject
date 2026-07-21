@@ -1,5 +1,6 @@
 {% extends "base/main.html" %}
 {% load static %}
+{% load persian_filters %}
 
 {% block title %}مدیریت کاربران{% endblock %}
 
@@ -181,7 +182,7 @@
             </td>
 
             <td class="text-muted fs-12">
-              {{ u.date_joined|date:"Y/m/d" }}
+              {{ u.date_joined|to_jalali }}
             </td>
           </tr>
           {% endfor %}

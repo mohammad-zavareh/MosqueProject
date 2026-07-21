@@ -1,5 +1,6 @@
 {% extends "base/main.html" %}
 {% load static %}
+{% load persian_filters %}
 
 {% block title %}حسابرسی{% endblock %}
 
@@ -247,7 +248,7 @@
             <td class="text-muted fs-12">{{ start_index|add:forloop.counter0 }}</td>
 
             <td class="fs-12">
-              <div class="fw-600">{{ log.timestamp|date:"Y/m/d" }}</div>
+              <div class="fw-600">{{ log.timestamp|to_jalali }}</div>
               <div class="text-muted">{{ log.timestamp|time:"H:i:s" }}</div>
             </td>
 

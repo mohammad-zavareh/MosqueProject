@@ -430,7 +430,7 @@
                   {% endif %}
                 </div>
                 <div class="txn-sub">
-                  {{ txn.date|date:"Y/m/d" }}
+                  {{ txn.date|to_jalali }}
                   {% if txn.fund %} · {{ txn.fund.name }}{% endif %}
                 </div>
               </div>
@@ -676,7 +676,7 @@
               </div>
               <div class="activity-sub">
                 {% if log.user %}{{ log.user.get_full_name|default:log.user.username }} ·{% endif %}
-                {{ log.timestamp|date:"Y/m/d H:i" }}
+                {{ log.timestamp|to_jalali }}
               </div>
             </div>
           </div>

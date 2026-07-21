@@ -154,7 +154,7 @@
           {% for row in rows %}
           <tr>
             <td class="text-muted fs-12">{{ forloop.counter }}</td>
-            <td><span class="td-main">{{ row.txn.date|date:"Y/m/d" }}</span></td>
+            <td><span class="td-main">{{ row.txn.date|to_jalali }}</span></td>
             <td>
               {% if row.txn.transaction_type == 'INCOME' %}
                 <span class="badge bdg-green"><span class="dot"></span>درآمد</span>

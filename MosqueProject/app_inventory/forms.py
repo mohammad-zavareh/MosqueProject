@@ -1,6 +1,8 @@
 from django import forms
 from .models import InventoryTransaction, InventoryItem, InventoryCategory, Supplier
 from app_finance.models import ExpenseDetail
+from jalali_date_new.fields import JalaliDateField
+from jalali_date_new.widgets import AdminJalaliDateWidget
 
 _INPUT = {"class": "form-ctrl"}
 _SELECT = {"class": "form-ctrl"}
@@ -73,9 +75,8 @@ class InventoryTransactionForm(forms.ModelForm):
         self.fields["expense"].queryset = expense_qs
         self.fields["expense"].empty_label = "— بدون سند هزینه —"
         self.fields["expense"].required = False
-
-        # نمایش شماره مرجع در dropdown
         self.fields["expense"].label_from_instance = self._expense_label
+        self.fields["date"] = JalaliDateField(label="تاریخ", widget=AdminJalaliDateWidget(attrs={"class": "form-ctrl"}))
 
     @staticmethod
     def _expense_label(obj):

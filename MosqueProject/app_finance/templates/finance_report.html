@@ -237,7 +237,7 @@
               {% if is_income %}{{ txn.income_detail.category.name|default:"—" }}
               {% else %}{{ txn.expense_detail.category.name|default:"—" }}{% endif %}
             </div>
-            <div class="txn-sub">{{ txn.date|date:"Y/m/d" }}{% if txn.fund %} · {{ txn.fund.name }}{% endif %}</div>
+            <div class="txn-sub">{{ txn.date|to_jalali }}{% if txn.fund %} · {{ txn.fund.name }}{% endif %}</div>
           </div>
           <div class="txn-amt {% if is_income %}text-success{% else %}text-danger{% endif %}">
             {% if is_income %}+{% else %}-{% endif %}{{ txn.amount|money }}

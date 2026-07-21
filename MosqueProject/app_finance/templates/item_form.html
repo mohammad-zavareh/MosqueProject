@@ -1,5 +1,6 @@
 {% extends "base/main.html" %}
 {% load static %}
+{% load persian_filters %}
 
 {% block title %}
   {% if instance %}ویرایش {{ labels.title_sing }} «{{ instance.name }}»
@@ -140,7 +141,7 @@
           <div>
             <div class="fs-11 text-muted mb-8">تاریخ ایجاد</div>
             <div class="fw-600 fs-12">
-              {{ instance.created_at|date:"Y/m/d H:i"|default:"—" }}
+              {{ instance.created_at|to_jalali }}
             </div>
           </div>
           {% if instance.created_by %}
@@ -154,7 +155,7 @@
           <div>
             <div class="fs-11 text-muted mb-8">آخرین ویرایش</div>
             <div class="fw-600 fs-12">
-              {{ instance.updated_at|date:"Y/m/d H:i"|default:"—" }}
+              {{ instance.updated_at|to_jalali }}
             </div>
           </div>
           {% if instance.updated_by %}

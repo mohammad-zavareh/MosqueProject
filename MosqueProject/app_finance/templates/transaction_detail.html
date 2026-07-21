@@ -1,8 +1,9 @@
 {% extends "base/main.html" %}
 {% load static %}
+{% load persian_filters %}
 
 {% block title %}
-  تراکنش #{{ txn.pk }} — {{ txn.date|date:"Y/m/d" }}
+  تراکنش #{{ txn.pk }} — {{ txn.date|to_jalali" }}
 {% endblock %}
 
 {% block extra_css %}
@@ -210,7 +211,7 @@
 
                 <div class="info-cell">
                   <div class="info-lbl">تاریخ</div>
-                  <div class="info-val">{{ txn.date|date:"Y/m/d" }}</div>
+                  <div class="info-val">{{ txn.date|to_jalali }}</div>
                 </div>
 
                 <div class="info-cell">

@@ -1,5 +1,6 @@
 {% extends "base/main.html" %}
 {% load static %}
+{% load persian_filters %}
 
 {% block title %}تراکنش‌های انبار{% endblock %}
 
@@ -283,7 +284,7 @@
           <tr>
             <td class="text-muted fs-12">{{ start_index|add:forloop.counter0 }}</td>
 
-            <td><span class="td-main">{{ txn.date|date:"Y/m/d" }}</span></td>
+            <td><span class="td-main">{{ txn.date|to_jalali }}</span></td>
 
             <td>
               {% if txn.transaction_type == 'PURCHASE' %}
