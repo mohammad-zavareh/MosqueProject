@@ -150,7 +150,8 @@
         </div>
         <div class="sb-sub {% if ns == 'account' and url_name != 'logout' %}open{% endif %}">
           <div class="sb-sub-inner">
-            <a class="sb-sub-link" href="#">تنظیمات سیستم</a>
+            <a class="sb-sub-link {% if url_name == 'backup' %}active{% endif %}"
+   href="{% url 'core:backup' %}">پشتیبان‌گیری</a>
             <a class="sb-sub-link {% if url_name == 'user_list' %}active{% endif %}"
                href="{% url 'account:user_list' %}">کاربران</a>
           </div>

@@ -6,9 +6,20 @@ from django.contrib.auth import get_user_model
 from .models import AuditLog
 from app_finance.models import FinancialTransaction, Fund, Event
 from app_inventory.models import InventoryItem, Supplier
-import datetime
 from .jalali_utils import parse_jalali_date
 import jdatetime
+import json
+import os
+import io
+import zipfile
+from django.apps import apps
+from django.conf import settings
+from django.core import serializers
+from django.db import transaction as db_transaction
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.views import View
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
+
 
 User = get_user_model()
 
@@ -417,3 +428,179 @@ class AuditLogDetailView(LoginRequiredMixin, TemplateView):
         return self.render_to_response(ctx)
 
 
+
+
+# ══════════════════════════════════════════════════════════════
+#  پشتیبان‌گیری کامل (Export / Import)
+# ══════════════════════════════════════════════════════════════
+
+# ترتیب مدل‌ها بر اساس وابستگی FK — رعایت این ترتیب هنگام import ضروریست
+BACKUP_MODELS_ORDER = [
+    "auth.user",
+    "app_finance.fund",
+    "app_finance.event",
+    "app_finance.incomecategory",
+    "app_finance.expensecategory",
+    "app_finance.financialtransaction",
+    "app_finance.incomedetail",
+    "app_finance.expensedetail",
+    "app_inventory.supplier",
+    "app_inventory.inventorycategory",
+    "app_inventory.inventoryitem",
+    "app_inventory.inventorytransaction",
+]
+
+# مدل‌هایی که به خودشون FK دارن (parent) و باید بر اساس عمق مرتب بشن
+SELF_REF_MODELS = {
+    "app_finance.incomecategory",
+    "app_finance.expensecategory",
+}
+
+
+def _ordered_queryset(model_label):
+    """
+    برای دسته‌بندی‌های خودارجاع، ابتدا ریشه‌ها و بعد فرزندان
+    (بر اساس عمق) برگردانده می‌شود تا در import خطای FK رخ ندهد.
+    """
+    model = apps.get_model(model_label)
+    if model_label not in SELF_REF_MODELS:
+        return list(model.objects.all().order_by("pk"))
+
+    ordered = []
+    added_ids = set()
+    remaining = list(model.objects.all().order_by("pk"))
+
+    while remaining:
+        progressed = False
+        still_remaining = []
+        for obj in remaining:
+            if obj.parent_id is None or obj.parent_id in added_ids:
+                ordered.append(obj)
+                added_ids.add(obj.pk)
+                progressed = True
+            else:
+                still_remaining.append(obj)
+        remaining = still_remaining
+        if not progressed:
+            # اگر حلقه‌ای معیوب بود (نباید پیش بیاد)، بقیه رو همونطور اضافه کن
+            ordered.extend(remaining)
+            break
+
+    return ordered
+
+
+class BackupView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """صفحه‌ی اصلی پشتیبان‌گیری — شامل export و import"""
+    template_name = "backup.html"
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def handle_no_permission(self):
+        return HttpResponseForbidden("دسترسی غیرمجاز — این بخش فقط برای سوپر ادمین است.")
+
+
+class BackupExportView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """خروجی کامل به‌صورت ZIP شامل data.json + فایل‌های مدیا"""
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def handle_no_permission(self):
+        return HttpResponseForbidden("دسترسی غیرمجاز")
+
+    def get(self, request, *args, **kwargs):
+        all_objects = []
+        for label in BACKUP_MODELS_ORDER:
+            all_objects.extend(_ordered_queryset(label))
+
+        data_json = serializers.serialize("json", all_objects, indent=None)
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("data.json", data_json)
+            zf.writestr("meta.json", json.dumps({
+                "app": "MosqueProject",
+                "version": 1,
+                "exported_at": timezone.now().isoformat(),
+                "models_order": BACKUP_MODELS_ORDER,
+            }, ensure_ascii=False, indent=2))
+
+            media_root = settings.MEDIA_ROOT
+            if os.path.isdir(media_root):
+                for root, _, files in os.walk(media_root):
+                    for fname in files:
+                        full_path = os.path.join(root, fname)
+                        rel_path = os.path.relpath(full_path, media_root)
+                        zf.write(full_path, os.path.join("media", rel_path))
+
+        zip_bytes = buf.getvalue()
+        filename = f"mosque-backup-{timezone.now().strftime('%Y%m%d-%H%M%S')}.zip"
+
+        response = HttpResponse(zip_bytes, content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Content-Length"] = str(len(zip_bytes))
+        return response
+
+
+class BackupImportView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """بازیابی از فایل ZIP خروجی‌گرفته‌شده توسط همین سامانه"""
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def handle_no_permission(self):
+        return JsonResponse({"ok": False, "error": "دسترسی غیرمجاز"}, status=403)
+
+    def post(self, request, *args, **kwargs):
+        uploaded = request.FILES.get("backup_file")
+        if not uploaded:
+            return JsonResponse({"ok": False, "error": "فایلی انتخاب نشده است."}, status=400)
+
+        try:
+            zf = zipfile.ZipFile(uploaded)
+        except zipfile.BadZipFile:
+            return JsonResponse({"ok": False, "error": "فایل معتبر نیست (ZIP نامعتبر)."}, status=400)
+
+        if "data.json" not in zf.namelist():
+            return JsonResponse({"ok": False, "error": "فایل data.json در بسته یافت نشد."}, status=400)
+
+        data_json = zf.read("data.json").decode("utf-8")
+
+        created_count = 0
+        updated_count = 0
+
+        try:
+            with db_transaction.atomic():
+                for deserialized_obj in serializers.deserialize("json", data_json):
+                    model_cls = type(deserialized_obj.object)
+                    pk = deserialized_obj.object.pk
+                    exists = pk is not None and model_cls.objects.filter(pk=pk).exists()
+                    deserialized_obj.save()
+                    if exists:
+                        updated_count += 1
+                    else:
+                        created_count += 1
+
+                # ── استخراج فایل‌های مدیا ──
+                media_root = settings.MEDIA_ROOT
+                for name in zf.namelist():
+                    if name.startswith("media/") and not name.endswith("/"):
+                        rel_path = name[len("media/"):]
+                        target_path = os.path.join(media_root, rel_path)
+                        os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                        with open(target_path, "wb") as out_f:
+                            out_f.write(zf.read(name))
+
+        except Exception as e:
+            return JsonResponse({
+                "ok": False,
+                "error": f"عملیات بازگردانی متوقف و لغو شد: {str(e)}",
+            }, status=400)
+
+        return JsonResponse({
+            "ok": True,
+            "created": created_count,
+            "updated": updated_count,
+            "message": "بازیابی اطلاعات با موفقیت انجام شد.",
+        })

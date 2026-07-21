@@ -1,0 +1,376 @@
+{% extends "base/main.html" %}
+{% load static %}
+
+{% block title %}پشتیبان‌گیری و بازیابی{% endblock %}
+
+{% block extra_css %}
+<style>
+.backup-icon-wrap{
+  width:52px;height:52px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.backup-desc{font-size:12.5px;color:var(--txt2);line-height:1.8;margin-bottom:16px}
+
+/* ── progress bar ── */
+.progress-wrap{
+  display:none;margin-top:16px;padding:14px 16px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r-sm);
+}
+.progress-wrap.show{display:block}
+.progress-head{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:8px;font-size:12px;font-weight:600;color:var(--txt2);
+}
+.progress-pct{font-weight:800;color:var(--p2)}
+.progress-bg{height:10px;background:var(--border);border-radius:6px;overflow:hidden}
+.progress-bar{
+  height:100%;border-radius:6px;background:linear-gradient(90deg,var(--p2),var(--p3));
+  width:0%;transition:width .25s ease;
+}
+.progress-bar.indeterminate{
+  width:100%!important;
+  background:linear-gradient(90deg,var(--p2) 30%,var(--p4) 50%,var(--p2) 70%);
+  background-size:200% 100%;
+  animation:progAnim 1.1s linear infinite;
+}
+@keyframes progAnim{from{background-position:200% 0}to{background-position:-200% 0}}
+
+/* ── file drop ── */
+.import-drop{
+  border:2px dashed var(--border-md);border-radius:var(--r);
+  padding:22px 18px;text-align:center;cursor:pointer;
+  background:var(--surface2);transition:all var(--t);
+}
+.import-drop:hover{border-color:var(--p2);background:var(--p-glow)}
+.import-drop input{display:none}
+.import-filename{
+  margin-top:8px;font-size:12.5px;font-weight:600;color:var(--p2);
+  word-break:break-all;
+}
+
+.warn-box{
+  display:flex;gap:10px;padding:12px 14px;
+  background:var(--amber-bg);border:1px solid rgba(217,119,6,.2);
+  border-radius:var(--r-sm);font-size:12px;color:var(--amber-txt);
+  line-height:1.7;margin-bottom:16px;
+}
+.warn-box svg{flex-shrink:0;margin-top:1px}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="content">
+
+  {# ══ عنوان ══ #}
+  <div class="sec-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+         stroke="var(--p2)" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    پشتیبان‌گیری و بازیابی
+    <span class="sec-badge">تنظیمات سیستم</span>
+  </div>
+
+  <div class="row">
+
+    {# ══ کارت Export ══ #}
+    <div class="col-12 col-md-6">
+      <div class="card">
+        <div class="d-flex align-c gap-12 mb-16">
+          <div class="backup-icon-wrap" style="background:var(--p-glow)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--p2)" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--txt)">خروجی کامل اطلاعات</div>
+            <div class="fs-11 text-muted">دانلود نسخه‌ی <span dir="ltr">ZIP</span></div>
+          </div>
+        </div>
+
+        <div class="backup-desc">
+          یک فایل <span dir="ltr">ZIP</span> شامل تمام رکوردهای تمام ماژول‌ها
+          (مالی، انبار، کاربران) به همراه ارتباطات بین آن‌ها و فایل‌های رسید/تصاویر
+          تولید می‌شود. این فایل مخصوص بازیابی توسط همین سامانه است.
+        </div>
+
+        <button type="button" id="exportBtn" class="btn btn-primary btn-block">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          دانلود فایل پشتیبان
+        </button>
+
+        <div class="progress-wrap" id="exportProgressWrap">
+          <div class="progress-head">
+            <span id="exportStatus">در حال آماده‌سازی...</span>
+            <span class="progress-pct" id="exportPct">0%</span>
+          </div>
+          <div class="progress-bg">
+            <div class="progress-bar" id="exportBar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ══ کارت Import ══ #}
+    <div class="col-12 col-md-6">
+      <div class="card">
+        <div class="d-flex align-c gap-12 mb-16">
+          <div class="backup-icon-wrap" style="background:var(--amber-bg)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--amber)" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--txt)">بازیابی اطلاعات</div>
+            <div class="fs-11 text-muted">آپلود فایل پشتیبان</div>
+          </div>
+        </div>
+
+        <div class="warn-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>
+            فقط فایل‌های <span dir="ltr">ZIP</span> تولیدشده توسط همین بخش
+            «خروجی کامل اطلاعات» را آپلود کنید. رکوردهای موجود با همان
+            شناسه (<span dir="ltr">pk</span>) بروزرسانی و رکوردهای جدید ایجاد می‌شوند.
+          </span>
+        </div>
+
+        <div class="import-drop" id="importDrop" onclick="document.getElementById('importFile').click()">
+          <input type="file" id="importFile" accept=".zip">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+               stroke="var(--txt3)" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <div class="fs-12" style="margin-top:6px;color:var(--txt2)">
+            فایل <span dir="ltr">ZIP</span> پشتیبان را انتخاب کنید
+          </div>
+          <div class="import-filename" id="importFileName"></div>
+        </div>
+
+        <button type="button" id="importBtn" class="btn btn-warning btn-block mt-16" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          شروع بازیابی
+        </button>
+
+        <div class="progress-wrap" id="importProgressWrap">
+          <div class="progress-head">
+            <span id="importStatus">در حال آپلود...</span>
+            <span class="progress-pct" id="importPct">0%</span>
+          </div>
+          <div class="progress-bg">
+            <div class="progress-bar" id="importBar"></div>
+          </div>
+        </div>
+
+        <div id="importResult"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+var EXPORT_URL = "{% url 'core:backup_export' %}";
+var IMPORT_URL = "{% url 'core:backup_import' %}";
+var CSRF_TOKEN = "{{ csrf_token }}";
+
+/* ══════════════════════════════════════
+   EXPORT — دانلود با پراگرس واقعی
+══════════════════════════════════════ */
+document.getElementById('exportBtn').addEventListener('click', function () {
+  var btn = this;
+  var wrap = document.getElementById('exportProgressWrap');
+  var bar = document.getElementById('exportBar');
+  var pctText = document.getElementById('exportPct');
+  var statusText = document.getElementById('exportStatus');
+
+  btn.disabled = true;
+  wrap.classList.add('show');
+  bar.classList.remove('indeterminate');
+  bar.style.background = '';
+  bar.style.width = '0%';
+  pctText.textContent = '0%';
+  statusText.textContent = 'در حال آماده‌سازی فایل پشتیبان...';
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', EXPORT_URL, true);
+  xhr.responseType = 'blob';
+
+  xhr.onprogress = function (e) {
+    if (e.lengthComputable) {
+      var pct = Math.round((e.loaded / e.total) * 100);
+      bar.style.width = pct + '%';
+      pctText.textContent = pct + '%';
+      statusText.textContent = 'در حال دانلود...';
+    }
+  };
+
+  xhr.onload = function () {
+    btn.disabled = false;
+    if (xhr.status === 200) {
+      bar.style.width = '100%';
+      pctText.textContent = '100%';
+      statusText.textContent = 'دانلود کامل شد!';
+
+      var disposition = xhr.getResponseHeader('Content-Disposition') || '';
+      var match = disposition.match(/filename="?([^"]+)"?/);
+      var filename = match ? match[1] : 'backup.zip';
+
+      var blobUrl = window.URL.createObjectURL(xhr.response);
+      var a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+
+      setTimeout(function () { wrap.classList.remove('show'); }, 2500);
+    } else {
+      bar.style.background = 'var(--red)';
+      statusText.textContent = 'خطا در تولید فایل پشتیبان.';
+    }
+  };
+
+  xhr.onerror = function () {
+    btn.disabled = false;
+    bar.style.background = 'var(--red)';
+    statusText.textContent = 'خطا در اتصال به سرور.';
+  };
+
+  xhr.send();
+});
+
+/* ══════════════════════════════════════
+   IMPORT — آپلود + پراگرس + وضعیت پردازش
+══════════════════════════════════════ */
+var fileInput = document.getElementById('importFile');
+var importBtn = document.getElementById('importBtn');
+var fileNameEl = document.getElementById('importFileName');
+
+fileInput.addEventListener('change', function () {
+  if (this.files[0]) {
+    fileNameEl.textContent = this.files[0].name;
+    importBtn.disabled = false;
+  } else {
+    fileNameEl.textContent = '';
+    importBtn.disabled = true;
+  }
+});
+
+importBtn.addEventListener('click', function () {
+  if (!fileInput.files[0]) return;
+
+  var wrap = document.getElementById('importProgressWrap');
+  var bar = document.getElementById('importBar');
+  var pctText = document.getElementById('importPct');
+  var statusText = document.getElementById('importStatus');
+  var resultBox = document.getElementById('importResult');
+
+  resultBox.innerHTML = '';
+  importBtn.disabled = true;
+  fileInput.disabled = true;
+  wrap.classList.add('show');
+  bar.classList.remove('indeterminate');
+  bar.style.background = '';
+  bar.style.width = '0%';
+  pctText.textContent = '0%';
+  statusText.textContent = 'در حال آپلود فایل...';
+
+  var formData = new FormData();
+  formData.append('backup_file', fileInput.files[0]);
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', IMPORT_URL, true);
+  xhr.setRequestHeader('X-CSRFToken', CSRF_TOKEN);
+
+  xhr.upload.onprogress = function (e) {
+    if (e.lengthComputable) {
+      var pct = Math.round((e.loaded / e.total) * 100);
+      bar.style.width = pct + '%';
+      pctText.textContent = pct + '%';
+      if (pct >= 100) {
+        statusText.textContent = 'در حال پردازش و بازیابی اطلاعات...';
+        bar.classList.add('indeterminate');
+      }
+    }
+  };
+
+  xhr.onload = function () {
+    importBtn.disabled = false;
+    fileInput.disabled = false;
+    bar.classList.remove('indeterminate');
+
+    var data = {};
+    try { data = JSON.parse(xhr.responseText); } catch (e) {}
+
+    if (xhr.status === 200 && data.ok) {
+      bar.style.width = '100%';
+      pctText.textContent = '100%';
+      statusText.textContent = 'تکمیل شد!';
+      resultBox.innerHTML =
+        '<div class="alert alert-success mb-16" style="margin-top:14px">' +
+          '<span class="alert-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>' +
+          '<div class="alert-body"><div class="alert-txt">' + data.message +
+          ' (ایجاد شده: ' + data.created + ' — بروزرسانی شده: ' + data.updated + ')</div></div>' +
+        '</div>';
+      fileNameEl.textContent = '';
+      fileInput.value = '';
+      importBtn.disabled = true;
+    } else {
+      bar.style.background = 'var(--red)';
+      statusText.textContent = 'عملیات ناموفق بود.';
+      resultBox.innerHTML =
+        '<div class="alert alert-danger mb-16" style="margin-top:14px">' +
+          '<span class="alert-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>' +
+          '<div class="alert-body"><div class="alert-txt">' + (data.error || 'خطای نامشخص رخ داد.') + '</div></div>' +
+        '</div>';
+    }
+  };
+
+  xhr.onerror = function () {
+    importBtn.disabled = false;
+    fileInput.disabled = false;
+    bar.classList.remove('indeterminate');
+    bar.style.background = 'var(--red)';
+    statusText.textContent = 'خطا در اتصال به سرور.';
+  };
+
+  xhr.send(formData);
+});
+</script>
+{% endblock %}
